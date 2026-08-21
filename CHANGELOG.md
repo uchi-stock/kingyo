@@ -1,3 +1,10 @@
+## [1.3.3](https://github.com/uchi-stock/kingyo/compare/v1.3.2...v1.3.3) (2026-08-21)
+
+
+### Bug Fixes
+
+* センサー許可リクエストのタイミング修正とデバッグ表示を追加 ([#18](https://github.com/uchi-stock/kingyo/issues/18)) ([0fef7a9](https://github.com/uchi-stock/kingyo/commit/0fef7a9604bee5ff004e2578f084e90b1389b6e5))
+
 ## [1.3.2](https://github.com/uchi-stock/kingyo/compare/v1.3.1...v1.3.2) (2026-08-21)
 
 
