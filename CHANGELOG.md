@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/uchi-stock/kingyo/compare/v1.1.0...v1.2.0) (2026-08-21)
+
+
+### Features
+
+* S3+CloudFrontへの実際のAWSデプロイをCDワークフローに組み込む ([#9](https://github.com/uchi-stock/kingyo/issues/9)) ([63e922a](https://github.com/uchi-stock/kingyo/commit/63e922a6af23c26baca16fb0df615f0661303e37))
+
 # [1.1.0](https://github.com/uchi-stock/kingyo/compare/v1.0.0...v1.1.0) (2026-08-21)
 
 
