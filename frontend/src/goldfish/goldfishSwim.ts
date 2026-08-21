@@ -18,8 +18,8 @@ const RANGE_PERCENT = CENTER_PERCENT - MARGIN_PERCENT
 export function goldfishPoseAt(elapsedMs: number, { seed }: GoldfishConfig): GoldfishPose {
   const t = elapsedMs / 1000
   const phase = seed * Math.PI * 2
-  const speedX = 0.25 + seed * 0.15
-  const speedY = 0.4 + seed * 0.2
+  const speedX = 0.7 + seed * 0.4
+  const speedY = 1.0 + seed * 0.5
 
   const xPercent = CENTER_PERCENT + RANGE_PERCENT * Math.sin(t * speedX + phase)
   const yPercent = CENTER_PERCENT + RANGE_PERCENT * 0.6 * Math.sin(t * speedY + phase * 1.7)

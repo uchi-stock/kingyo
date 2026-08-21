@@ -7,7 +7,7 @@ describe('goldfishPoseAt', () => {
   })
 
   it('半周期後は左向きに切り替わる', () => {
-    const speedX = 0.25 // seed=0のときのspeedX
+    const speedX = 0.7 // seed=0のときのspeedX
     const elapsedMs = (Math.PI / speedX) * 1000
     const pose = goldfishPoseAt(elapsedMs, { seed: 0 })
     expect(pose.facingLeft).toBe(true)
