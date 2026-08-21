@@ -1,0 +1,8 @@
+{
+  "name": "kingyo-infra",
+  "private": true,
+  "version": "0.0.0",
+  "devDependencies": {
+    "osls": "^4.1.0"
+  }
+}
