@@ -1,3 +1,5 @@
+import { Poi } from './components/Poi';
+
 function App() {
   return (
     <main className="container py-5">
@@ -5,6 +7,7 @@ function App() {
       <p className="text-body-secondary">
         スマートフォンの加速度センサーでポイを操作し、カメラ映像に重ねて表示される金魚をすくう体験アプリです。
       </p>
+      <Poi />
     </main>
   );
 }
