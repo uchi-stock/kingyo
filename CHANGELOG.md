@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/uchi-stock/kingyo/compare/v1.2.1...v1.3.0) (2026-08-21)
+
+
+### Features
+
+* カメラ映像を用いて空間上に金魚を表示する ([#13](https://github.com/uchi-stock/kingyo/issues/13)) ([32b173b](https://github.com/uchi-stock/kingyo/commit/32b173b4ee03c6edc71281d61aa6c91fc58a0bc6))
+
 ## [1.2.1](https://github.com/uchi-stock/kingyo/compare/v1.2.0...v1.2.1) (2026-08-21)
 
 
