@@ -21,7 +21,7 @@ export function Poi() {
   return (
     <div
       ref={pondRef}
-      className="position-relative bg-info-subtle rounded-3 overflow-hidden"
+      className="position-relative rounded-3 overflow-hidden border border-2 border-white"
       style={{ height: '60vh', touchAction: 'none' }}
       onPointerDown={showManualControl ? handlePointerInput : undefined}
       onPointerMove={showManualControl ? handlePointerInput : undefined}

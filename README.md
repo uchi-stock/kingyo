@@ -26,4 +26,4 @@ npm run dev
 
 ## ステータス
 
-加速度センサーによるポイ操作を実装済み（`frontend/src/components/Poi.tsx`）。カメラ映像を用いた金魚の表示は未実装。
+ポイ操作（`frontend/src/components/Poi.tsx`）・カメラ映像を用いた金魚の表示（`frontend/src/components/CameraBackground.tsx`, `GoldfishSchool.tsx`）を実装済み。金魚とポイの当たり判定（掬えた/掬えなかった判定）は未実装。
