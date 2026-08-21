@@ -3,7 +3,7 @@ import { useRef } from 'react'
 import { usePoiMotion } from '../motion/usePoiMotion'
 
 export function Poi() {
-  const { permission, position, requestPermission, setPositionFromPointer } = usePoiMotion()
+  const { permission, pose, requestPermission, setPositionFromPointer } = usePoiMotion()
   const pondRef = useRef<HTMLDivElement>(null)
   const showManualControl = permission === 'denied' || permission === 'unsupported'
 
@@ -31,11 +31,11 @@ export function Poi() {
         data-testid="poi-marker"
         className="position-absolute rounded-circle border border-4 border-white"
         style={{
-          left: `${position.xPercent}%`,
-          top: `${position.yPercent}%`,
+          left: `${pose.xPercent}%`,
+          top: `${pose.yPercent}%`,
           width: '3rem',
           height: '3rem',
-          transform: `translate(-50%, -50%) rotate(${position.angleDeg}deg)`,
+          transform: `translate(-50%, -50%) rotate(${pose.angleDeg}deg)`,
         }}
         aria-hidden="true"
       />

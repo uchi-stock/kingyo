@@ -19,11 +19,11 @@ function mockPointerBounds() {
 describe('Poi', () => {
   afterEach(() => {
     // @ts-expect-error テストで追加したモックを削除する
-    delete window.DeviceOrientationEvent
+    delete window.DeviceMotionEvent
   })
 
-  it('requestPermissionを持たない環境（Android等）では、許可ボタンなしでセンサー値をポイに反映する', () => {
-    // jsdomはDeviceOrientationEventをrequestPermissionなしのスタブとして持つため、デフォルトでgranted扱いになる
+  it('requestPermissionを持たない環境（Android等）では、許可ボタンなしでモーションセンサーの値をポイの位置に反映する', async () => {
+    // jsdomはDeviceMotionEventをrequestPermissionなしのスタブとして持つため、デフォルトでgranted扱いになる
     render(<Poi />)
     expect(screen.queryByRole('button', { name: 'センサーを有効にする' })).not.toBeInTheDocument()
     expect(
@@ -32,16 +32,32 @@ describe('Poi', () => {
 
     fireEvent(
       window,
-      new DeviceOrientationEvent('deviceorientation', { beta: 45, gamma: -45 }),
+      new DeviceMotionEvent('devicemotion', { acceleration: { x: 1, y: 0, z: 0 } }),
     )
 
     const marker = screen.getByTestId('poi-marker')
-    expect(marker).toHaveStyle({ left: '0%', top: '100%' })
+    await waitFor(() => {
+      expect(marker.style.left).not.toBe('50%')
+    })
   })
 
-  it('DeviceOrientationEvent自体が存在しない場合、フォールバック操作の案内を表示する', () => {
+  it('端末の傾き（deviceorientation）はポイの位置ではなく角度にのみ反映される', () => {
+    render(<Poi />)
+    const marker = screen.getByTestId('poi-marker')
+
+    fireEvent(
+      window,
+      new DeviceOrientationEvent('deviceorientation', { beta: 45, gamma: 30 }),
+    )
+
+    expect(marker.style.left).toBe('50%')
+    expect(marker.style.top).toBe('50%')
+    expect(marker.style.transform).toContain('rotate(30deg)')
+  })
+
+  it('DeviceMotionEvent自体が存在しない場合、フォールバック操作の案内を表示する', () => {
     // @ts-expect-error テスト用にセンサーAPI自体が存在しない環境を再現する
-    delete window.DeviceOrientationEvent
+    delete window.DeviceMotionEvent
 
     render(<Poi />)
     expect(screen.queryByRole('button', { name: 'センサーを有効にする' })).not.toBeInTheDocument()
@@ -52,10 +68,10 @@ describe('Poi', () => {
 
   it('iOSのようにrequestPermissionが必要な場合、ボタン押下で許可をリクエストし、許可後はボタンが消える', async () => {
     const requestPermission = vi.fn().mockResolvedValue('granted')
-    // @ts-expect-error テスト用にDeviceOrientationEventをモックする
-    window.DeviceOrientationEvent = function DeviceOrientationEvent() {}
-    // @ts-expect-error テスト用にDeviceOrientationEventをモックする
-    window.DeviceOrientationEvent.requestPermission = requestPermission
+    // @ts-expect-error テスト用にDeviceMotionEventをモックする
+    window.DeviceMotionEvent = function DeviceMotionEvent() {}
+    // @ts-expect-error テスト用にDeviceMotionEventをモックする
+    window.DeviceMotionEvent.requestPermission = requestPermission
 
     render(<Poi />)
     const button = screen.getByRole('button', { name: 'センサーを有効にする' })
@@ -69,10 +85,10 @@ describe('Poi', () => {
 
   it('許可が拒否された場合、フォールバック操作の案内が表示される', async () => {
     const requestPermission = vi.fn().mockResolvedValue('denied')
-    // @ts-expect-error テスト用にDeviceOrientationEventをモックする
-    window.DeviceOrientationEvent = function DeviceOrientationEvent() {}
-    // @ts-expect-error テスト用にDeviceOrientationEventをモックする
-    window.DeviceOrientationEvent.requestPermission = requestPermission
+    // @ts-expect-error テスト用にDeviceMotionEventをモックする
+    window.DeviceMotionEvent = function DeviceMotionEvent() {}
+    // @ts-expect-error テスト用にDeviceMotionEventをモックする
+    window.DeviceMotionEvent.requestPermission = requestPermission
 
     render(<Poi />)
     fireEvent.click(screen.getByRole('button', { name: 'センサーを有効にする' }))
@@ -86,7 +102,7 @@ describe('Poi', () => {
 
   it('フォールバック操作時、ポインタ操作でポイの位置が更新される', () => {
     // @ts-expect-error センサーAPIが存在しない環境を再現し、フォールバック操作を有効にする
-    delete window.DeviceOrientationEvent
+    delete window.DeviceMotionEvent
     mockPointerBounds()
 
     render(<Poi />)
