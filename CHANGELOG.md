@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/uchi-stock/kingyo/compare/v1.3.0...v1.3.1) (2026-08-21)
+
+
+### Bug Fixes
+
+* ポイの加速度センサー入力から重力成分を除去する ([#16](https://github.com/uchi-stock/kingyo/issues/16)) ([8a56eb3](https://github.com/uchi-stock/kingyo/commit/8a56eb3ea55fea06265159267b1c92ac94e45378))
+
 # [1.3.0](https://github.com/uchi-stock/kingyo/compare/v1.2.1...v1.3.0) (2026-08-21)
 
 
