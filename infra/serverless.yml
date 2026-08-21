@@ -4,13 +4,14 @@
 #   cd infra && npx osls deploy
 #
 # デプロイにはAWS認証情報（AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY）が必要。
-# 実際のデプロイ・CI/CDへの組み込みは別Issueで行う。
+# CI/CD（cd.ymlのdeploy job）から実行される。
 service: kingyo-hosting
 
 provider:
   name: aws
   runtime: nodejs22.x
   region: ap-northeast-1
+  stage: prod
 
 resources:
   Resources:

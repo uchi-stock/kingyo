@@ -13,3 +13,68 @@ jobs:
       enable_changelog_json: true
     secrets:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+
+  # 新バージョンがリリースされた場合のみ、S3+CloudFrontへ実際にデプロイする
+  # （dev-standards docs/static-hosting-pattern.md「デプロイ」参照）。
+  deploy:
+    needs: cd
+    if: success() && needs.cd.outputs.new_release_published == 'true'
+    runs-on: ubuntu-latest
+    env:
+      AWS_DEFAULT_REGION: ap-northeast-1
+      # infra/serverless.ymlのservice名・provider.stageから決まるCloudFormationスタック名
+      # （Serverless Frameworkの既定命名規則: ${service}-${stage}）
+      STACK_NAME: kingyo-hosting-prod
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Deploy infrastructure (S3 + CloudFront)
+        uses: bamiyanapp/dev-standards/.github/actions/deploy-serverless@v2.4.0
+        with:
+          working-directory: infra
+          node-version: "22"
+          deploy-command: npx osls deploy
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Resolve stack outputs
+        id: stack
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue" --output text)
+          DISTRIBUTION_ID=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='DistributionId'].OutputValue" --output text)
+          DISTRIBUTION_DOMAIN=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='DistributionDomainName'].OutputValue" --output text)
+          echo "bucket_name=$BUCKET_NAME" >> "$GITHUB_OUTPUT"
+          echo "distribution_id=$DISTRIBUTION_ID" >> "$GITHUB_OUTPUT"
+          echo "distribution_domain=$DISTRIBUTION_DOMAIN" >> "$GITHUB_OUTPUT"
+
+      - name: Sync build artifacts to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          aws s3 sync frontend/dist/ "s3://${{ steps.stack.outputs.bucket_name }}/" --delete --cache-control "no-cache" --exclude "assets/*"
+          aws s3 sync frontend/dist/assets/ "s3://${{ steps.stack.outputs.bucket_name }}/assets/" --cache-control "public, max-age=31536000, immutable"
+
+      - name: Invalidate CloudFront cache
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: aws cloudfront create-invalidation --distribution-id "${{ steps.stack.outputs.distribution_id }}" --paths "/*"
+
+      - name: Publish endpoint to job summary
+        run: |
+          {
+            echo "### デプロイ完了"
+            echo ""
+            echo "- URL: https://${{ steps.stack.outputs.distribution_domain }}"
+          } >> "$GITHUB_STEP_SUMMARY"
