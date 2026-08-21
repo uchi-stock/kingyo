@@ -29,6 +29,27 @@ export interface Acceleration2D {
   y: number
 }
 
+const GRAVITY_TRACKING_ALPHA = 0.8 // 重力推定の追従係数（大きいほど低周波成分＝重力のみを緩やかに追従する）
+
+// event.accelerationIncludingGravityしか取得できない端末向けのフォールバック。
+// 重力成分（低周波・持続的な約9.8m/s²のバイアス）をハイパスフィルタで推定・除去し、
+// スライド操作由来の線形加速度のみを取り出す。重力成分を除去せずそのまま積分に使うと、
+// 端末の傾き方向へ速度が持続的に加算され続け、ポイが画面端に張り付いたまま
+// 動かなくなる不具合が起きる（issue #14）。
+export function removeGravity(
+  raw: Acceleration2D,
+  gravityEstimate: Acceleration2D,
+): { linear: Acceleration2D; gravityEstimate: Acceleration2D } {
+  const nextGravityEstimate: Acceleration2D = {
+    x: GRAVITY_TRACKING_ALPHA * gravityEstimate.x + (1 - GRAVITY_TRACKING_ALPHA) * raw.x,
+    y: GRAVITY_TRACKING_ALPHA * gravityEstimate.y + (1 - GRAVITY_TRACKING_ALPHA) * raw.y,
+  }
+  return {
+    linear: { x: raw.x - nextGravityEstimate.x, y: raw.y - nextGravityEstimate.y },
+    gravityEstimate: nextGravityEstimate,
+  }
+}
+
 const ACCELERATION_SENSITIVITY = 6 // m/s^2 を %/s^2 相当の速度変化量へ変換する係数
 const DAMPING_PER_SEC = 0.1 // 1秒あたりに速度がこの割合まで減衰する（摩擦・センサーノイズ対策）
 const MAX_DT_SECONDS = 0.1 // タブのバックグラウンド復帰等での大きなdtによる位置の飛びを防ぐ

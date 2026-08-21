@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CENTER_POI_MOTION_STATE, orientationToAngleDeg, stepPoiMotion } from './poiMotion'
+import { CENTER_POI_MOTION_STATE, orientationToAngleDeg, removeGravity, stepPoiMotion } from './poiMotion'
 
 describe('orientationToAngleDeg', () => {
   it('傾きがない場合は0度になる', () => {
@@ -54,5 +54,56 @@ describe('stepPoiMotion', () => {
     const shortDt = stepPoiMotion(CENTER_POI_MOTION_STATE, { x: 1, y: 0 }, 0.1)
     const longDt = stepPoiMotion(CENTER_POI_MOTION_STATE, { x: 1, y: 0 }, 100)
     expect(longDt).toEqual(shortDt)
+  })
+})
+
+describe('removeGravity', () => {
+  it('静止状態が続くと、重力成分がすべてgravityEstimateに吸収され、linearはほぼ0に収束する', () => {
+    let gravityEstimate = { x: 0, y: 0 }
+    const raw = { x: 0, y: 9.8 } // 端末が水平に静止しており、重力がy軸に一定でかかっている状態を想定
+    let linear = { x: 0, y: 0 }
+
+    for (let i = 0; i < 100; i += 1) {
+      const result = removeGravity(raw, gravityEstimate)
+      gravityEstimate = result.gravityEstimate
+      linear = result.linear
+    }
+
+    expect(gravityEstimate.y).toBeCloseTo(9.8, 1)
+    expect(Math.abs(linear.y)).toBeLessThan(0.1)
+  })
+
+  it('重力が収束した状態から急な加速度変化（スライド操作相当）があると、linearに反映される', () => {
+    let gravityEstimate = { x: 0, y: 0 }
+    const restingRaw = { x: 0, y: 9.8 }
+    for (let i = 0; i < 100; i += 1) {
+      gravityEstimate = removeGravity(restingRaw, gravityEstimate).gravityEstimate
+    }
+
+    // 重力9.8に加え、スライド操作による加速度2.0が瞬間的に加わった状態を想定。
+    // ハイパスフィルタは1サンプルで完全には追従しないため、(1 - alpha)分だけgravityEstimate側にも
+    // 吸収され、残りのalpha分がlinearに現れる
+    const slideRaw = { x: 0, y: 11.8 }
+    const { linear } = removeGravity(slideRaw, gravityEstimate)
+
+    expect(linear.y).toBeCloseTo(2.0 * 0.8, 5)
+  })
+
+  it('端末が傾いたまま静止し続けると、linearの絶対値は時間とともに0へ収束していく（境界張り付きの再発防止）', () => {
+    let gravityEstimate = { x: 0, y: 0 }
+    const raw = { x: 3, y: 4 } // 端末が一定角度傾いたまま静止している状態を想定
+
+    const first = removeGravity(raw, gravityEstimate)
+    const firstAbsLinear = Math.hypot(first.linear.x, first.linear.y)
+    gravityEstimate = first.gravityEstimate
+
+    for (let i = 0; i < 200; i += 1) {
+      gravityEstimate = removeGravity(raw, gravityEstimate).gravityEstimate
+    }
+    const final = removeGravity(raw, gravityEstimate)
+    const finalAbsLinear = Math.hypot(final.linear.x, final.linear.y)
+
+    expect(finalAbsLinear).toBeLessThan(firstAbsLinear)
+    expect(finalAbsLinear).toBeLessThan(0.1)
   })
 })

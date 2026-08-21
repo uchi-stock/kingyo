@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { CENTER_POI_MOTION_STATE, orientationToAngleDeg, stepPoiMotion, type PoiMotionState } from './poiMotion'
+import {
+  CENTER_POI_MOTION_STATE,
+  orientationToAngleDeg,
+  removeGravity,
+  stepPoiMotion,
+  type Acceleration2D,
+  type PoiMotionState,
+} from './poiMotion'
 
 export type MotionPermissionState = 'unknown' | 'unsupported' | 'granted' | 'denied'
 
@@ -43,6 +50,7 @@ export function usePoiMotion(): UsePoiMotionResult {
   const [motionState, setMotionState] = useState<PoiMotionState>(CENTER_POI_MOTION_STATE)
   const [angleDeg, setAngleDeg] = useState(0)
   const latestAccelerationRef = useRef({ x: 0, y: 0 })
+  const gravityEstimateRef = useRef<Acceleration2D>({ x: 0, y: 0 })
 
   // 角度表現は位置操作の許可状態に関わらず、購読できる範囲で常時反映する
   useEffect(() => {
@@ -59,12 +67,25 @@ export function usePoiMotion(): UsePoiMotionResult {
     }
 
     const handleMotion = (event: DeviceMotionEvent) => {
-      const acceleration = event.acceleration ?? event.accelerationIncludingGravity
-      if (!acceleration) {
+      // event.accelerationは重力成分を除いた線形加速度で、取得できる端末ではこちらを優先する。
+      // 取得できない端末では、accelerationIncludingGravityから重力成分を除去して使う
+      // （そのまま使うと重力バイアスでポイが画面端に張り付いて動かなくなる。issue #14）
+      let x: number
+      let y: number
+      if (event.acceleration && (event.acceleration.x !== null || event.acceleration.y !== null)) {
+        x = event.acceleration.x ?? 0
+        y = event.acceleration.y ?? 0
+      } else if (event.accelerationIncludingGravity) {
+        const raw = { x: event.accelerationIncludingGravity.x ?? 0, y: event.accelerationIncludingGravity.y ?? 0 }
+        const result = removeGravity(raw, gravityEstimateRef.current)
+        gravityEstimateRef.current = result.gravityEstimate
+        x = result.linear.x
+        y = result.linear.y
+      } else {
         return
       }
       // 画面座標はyが下方向を正とするが、デバイスのy軸は上方向が正のため反転する
-      latestAccelerationRef.current = { x: acceleration.x ?? 0, y: -(acceleration.y ?? 0) }
+      latestAccelerationRef.current = { x, y: -y }
     }
 
     let frameId: number
