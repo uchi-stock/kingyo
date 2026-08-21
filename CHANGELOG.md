@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/uchi-stock/kingyo/compare/v1.2.0...v1.2.1) (2026-08-21)
+
+
+### Bug Fixes
+
+* ポイの操作モデルを修正（傾き→角度、スライド移動→位置） ([#12](https://github.com/uchi-stock/kingyo/issues/12)) ([aa0917d](https://github.com/uchi-stock/kingyo/commit/aa0917d2e72eef3b16d52c04b666fd02091fd18d))
+
 # [1.2.0](https://github.com/uchi-stock/kingyo/compare/v1.1.0...v1.2.0) (2026-08-21)
 
 
