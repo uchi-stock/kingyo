@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/uchi-stock/kingyo/compare/v1.0.0...v1.1.0) (2026-08-21)
+
+
+### Features
+
+* 加速度センサーでポイを操作する機能を追加 ([#7](https://github.com/uchi-stock/kingyo/issues/7)) ([e49604d](https://github.com/uchi-stock/kingyo/commit/e49604d928dab3b5952209b5be494f4eb262d76a))
+
 # 1.0.0 (2026-08-21)
 
 
