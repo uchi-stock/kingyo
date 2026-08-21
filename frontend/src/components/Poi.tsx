@@ -3,7 +3,7 @@ import { useRef } from 'react'
 import { usePoiMotion } from '../motion/usePoiMotion'
 
 export function Poi() {
-  const { permission, pose, requestPermission, setPositionFromPointer } = usePoiMotion()
+  const { permission, pose, debug, requestPermission, setPositionFromPointer } = usePoiMotion()
   const pondRef = useRef<HTMLDivElement>(null)
   const showManualControl = permission === 'denied' || permission === 'unsupported'
 
@@ -57,6 +57,16 @@ export function Poi() {
           加速度センサーが利用できないため、画面をなぞってポイを操作してください
         </p>
       )}
+
+      {/* センサー入力が実際に届いているかを確認するための一時的なデバッグ表示（issue #14） */}
+      <p
+        className="position-absolute top-0 start-0 m-2 text-white bg-dark bg-opacity-50 rounded px-2 py-1 small"
+        style={{ fontFamily: 'monospace' }}
+        data-testid="poi-debug"
+      >
+        permission: {permission} / events: {debug.motionEventCount} / accel: (
+        {debug.lastAcceleration.x.toFixed(2)}, {debug.lastAcceleration.y.toFixed(2)})
+      </p>
     </div>
   )
 }
