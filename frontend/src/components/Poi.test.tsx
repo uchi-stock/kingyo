@@ -16,10 +16,17 @@ function mockPointerBounds() {
   })
 }
 
+// jsdom既定のDeviceMotionEventスタブを退避しておき、各テスト後に復元する。
+// delete window.DeviceMotionEventのみだと、そのテストファイル内の以降のテストで
+// 既定スタブ（requestPermissionなし＝granted扱い）に依存するケースが「unsupported」に
+// なってしまう
+const originalDeviceMotionEvent = window.DeviceMotionEvent
+
 describe('Poi', () => {
   afterEach(() => {
+    window.DeviceMotionEvent = originalDeviceMotionEvent
     // @ts-expect-error テストで追加したモックを削除する
-    delete window.DeviceMotionEvent
+    delete window.DeviceOrientationEvent.requestPermission
   })
 
   it('requestPermissionを持たない環境（Android等）では、許可ボタンなしでモーションセンサーの値をポイの位置に反映する', async () => {
@@ -97,6 +104,55 @@ describe('Poi', () => {
       expect(
         screen.getByText('加速度センサーが利用できないため、画面をなぞってポイを操作してください'),
       ).toBeInTheDocument()
+    })
+  })
+
+  it('許可リクエストは角度用・位置用の両方を、一方のawait解決前に同期的に呼び出す', async () => {
+    let resolveMotion: (value: 'granted' | 'denied') => void = () => {}
+    let resolveOrientation: (value: 'granted' | 'denied') => void = () => {}
+    const motionRequestPermission = vi.fn(
+      () =>
+        new Promise<'granted' | 'denied'>((resolve) => {
+          resolveMotion = resolve
+        }),
+    )
+    const orientationRequestPermission = vi.fn(
+      () =>
+        new Promise<'granted' | 'denied'>((resolve) => {
+          resolveOrientation = resolve
+        }),
+    )
+    // @ts-expect-error テスト用にDeviceMotionEventをモックする
+    window.DeviceMotionEvent = function DeviceMotionEvent() {}
+    // @ts-expect-error テスト用にDeviceMotionEventをモックする
+    window.DeviceMotionEvent.requestPermission = motionRequestPermission
+    // @ts-expect-error テスト用にDeviceOrientationEventへ許可リクエストを追加する
+    window.DeviceOrientationEvent.requestPermission = orientationRequestPermission
+
+    render(<Poi />)
+    fireEvent.click(screen.getByRole('button', { name: 'センサーを有効にする' }))
+
+    // どちらのPromiseもまだ解決していない時点で、両方のrequestPermissionが呼ばれている
+    // （片方をawaitしてから次を呼ぶと、iOS Safari等でuser activationが失われうるため。issue #14）
+    expect(motionRequestPermission).toHaveBeenCalledTimes(1)
+    expect(orientationRequestPermission).toHaveBeenCalledTimes(1)
+
+    resolveOrientation('granted')
+    resolveMotion('granted')
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'センサーを有効にする' })).not.toBeInTheDocument()
+    })
+  })
+
+  it('デバッグ表示に許可状態・受信したdevicemotionイベント数・最新の加速度が反映される', async () => {
+    render(<Poi />)
+    expect(screen.getByTestId('poi-debug').textContent).toContain('permission: granted')
+    expect(screen.getByTestId('poi-debug').textContent).toContain('events: 0')
+
+    fireEvent(window, new DeviceMotionEvent('devicemotion', { acceleration: { x: 1, y: 2, z: 0 } }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('poi-debug').textContent).toContain('events: 1')
     })
   })
 

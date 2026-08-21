@@ -36,9 +36,15 @@ export interface PoiPose {
   angleDeg: number
 }
 
+export interface PoiDebugInfo {
+  motionEventCount: number
+  lastAcceleration: Acceleration2D
+}
+
 export interface UsePoiMotionResult {
   permission: MotionPermissionState
   pose: PoiPose
+  debug: PoiDebugInfo
   requestPermission: () => Promise<void>
   setPositionFromPointer: (xPercent: number, yPercent: number) => void
 }
@@ -51,6 +57,8 @@ export function usePoiMotion(): UsePoiMotionResult {
   const [angleDeg, setAngleDeg] = useState(0)
   const latestAccelerationRef = useRef({ x: 0, y: 0 })
   const gravityEstimateRef = useRef<Acceleration2D>({ x: 0, y: 0 })
+  const motionEventCountRef = useRef(0)
+  const [debug, setDebug] = useState<PoiDebugInfo>({ motionEventCount: 0, lastAcceleration: { x: 0, y: 0 } })
 
   // 角度表現は位置操作の許可状態に関わらず、購読できる範囲で常時反映する
   useEffect(() => {
@@ -86,6 +94,7 @@ export function usePoiMotion(): UsePoiMotionResult {
       }
       // 画面座標はyが下方向を正とするが、デバイスのy軸は上方向が正のため反転する
       latestAccelerationRef.current = { x, y: -y }
+      motionEventCountRef.current += 1
     }
 
     let frameId: number
@@ -95,6 +104,9 @@ export function usePoiMotion(): UsePoiMotionResult {
       const dtSeconds = (now - lastTime) / 1000
       lastTime = now
       setMotionState((state) => stepPoiMotion(state, latestAccelerationRef.current, dtSeconds))
+      // devicemotionイベントが実際に届いているかを画面上で確認できるようにする
+      // デバッグ用の状態（issue #14: 実機で位置が中央から全く動かない事象の原因切り分け）
+      setDebug({ motionEventCount: motionEventCountRef.current, lastAcceleration: latestAccelerationRef.current })
       frameId = requestAnimationFrame(tick)
     }
 
@@ -107,28 +119,34 @@ export function usePoiMotion(): UsePoiMotionResult {
   }, [permission])
 
   const requestPermission = useCallback(async () => {
-    // 角度表現用のセンサー許可も同じユーザー操作の流れでリクエストする（iOS Safari対応）。
-    // 角度は補助的な機能のため、失敗しても位置操作（モーション）側の許可フローは継続する
-    const orientationRequester = getPermissionRequester(
-      typeof window !== 'undefined' ? window.DeviceOrientationEvent : undefined,
-    )
-    if (orientationRequester) {
-      try {
-        await orientationRequester()
-      } catch {
-        // 角度表現は補助機能のため、失敗しても致命的ではない
-      }
-    }
-
     const motionRequester = getPermissionRequester(
       typeof window !== 'undefined' ? window.DeviceMotionEvent : undefined,
     )
-    if (!motionRequester) {
+    const orientationRequester = getPermissionRequester(
+      typeof window !== 'undefined' ? window.DeviceOrientationEvent : undefined,
+    )
+
+    // 両方のrequestPermission()を、どちらもawaitする前に同期的に呼び出す。
+    // 片方をawaitしてから次を呼ぶと、2回目の呼び出し時点でクリック操作に紐づく
+    // user activationが失われ、許可ダイアログが出ないまま黙って拒否扱いになる
+    // ブラウザがあるため（issue #14）
+    const motionPermissionPromise = motionRequester?.()
+    const orientationPermissionPromise = orientationRequester?.()
+
+    if (orientationPermissionPromise) {
+      try {
+        await orientationPermissionPromise
+      } catch {
+        // 角度表現は補助機能のため、失敗しても位置操作（モーション）側の許可フローには影響させない
+      }
+    }
+
+    if (!motionPermissionPromise) {
       setPermission('granted')
       return
     }
     try {
-      const result = await motionRequester()
+      const result = await motionPermissionPromise
       setPermission(result === 'granted' ? 'granted' : 'denied')
     } catch {
       setPermission('denied')
@@ -149,6 +167,7 @@ export function usePoiMotion(): UsePoiMotionResult {
   return {
     permission,
     pose: { xPercent: motionState.xPercent, yPercent: motionState.yPercent, angleDeg },
+    debug,
     requestPermission,
     setPositionFromPointer,
   }
