@@ -11,8 +11,19 @@
 
 ## 設計方針
 
-本プロジェクトの開発ルール・CI/CD構成・技術スタックの選定は、開発共通プロジェクト [bamiyanapp/dev-standards](https://github.com/bamiyanapp/dev-standards) を引き継ぐ。
+本プロジェクトの開発ルール・CI/CD構成・技術スタックの選定は、開発共通プロジェクト [bamiyanapp/dev-standards](https://github.com/bamiyanapp/dev-standards) を引き継ぐ。ログイン・独自バックエンドAPIは不要なため、以下の標準構成（`dev-standards/docs/standard-tech-stack.md`）を採用する。
+
+- フロントエンド: React 19 + Vite + TypeScript + Bootstrap 5.3（単一パッケージ、`frontend/`）
+- ホスティング: S3 + CloudFront（`infra/`、OSLSデプロイ）
+
+## 開発
+
+```sh
+cd frontend
+npm install
+npm run dev
+```
 
 ## ステータス
 
-現在、プロジェクト立ち上げ段階。具体的な技術スタック・アプリ構成は今後決定していく。
+初期セットアップ段階。加速度センサーによるポイ操作・カメラ映像を用いた金魚の表示は未実装。
