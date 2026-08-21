@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/uchi-stock/kingyo/compare/v1.3.1...v1.3.2) (2026-08-21)
+
+
+### Bug Fixes
+
+* 金魚がより活発に泳ぎ回るよう速度を調整する ([#17](https://github.com/uchi-stock/kingyo/issues/17)) ([e0a2d6c](https://github.com/uchi-stock/kingyo/commit/e0a2d6c66c0c760be3de3b2f8145fa8486fb0644))
+
 ## [1.3.1](https://github.com/uchi-stock/kingyo/compare/v1.3.0...v1.3.1) (2026-08-21)
 
 
