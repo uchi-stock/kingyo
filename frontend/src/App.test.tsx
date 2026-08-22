@@ -166,7 +166,7 @@ describe('App', () => {
     expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
   });
 
-  it('ポイの中心（半径4以内）で金魚を捕獲すると、ポイが破れて以降金魚を捕獲できなくなる（issue #45）', async () => {
+  it('ポイの中心（半径6以内）で金魚を捕獲すると、ポイが破れて以降金魚を捕獲できなくなる（issue #45）', async () => {
     setUpMatchingPondAndViewport();
 
     let now = 1000;
@@ -360,7 +360,7 @@ describe('App', () => {
     expect(playCountFor(playCountsBySrc, 'catch-success')).toBeGreaterThan(1);
   });
 
-  it('捕獲半径内だが中心（半径4）の外側で捕獲した場合は、破れ専用の効果音（poi-tear.mp3）は再生されない（issue #69）', async () => {
+  it('捕獲半径内だが中心（半径6）の外側で捕獲した場合は、破れ専用の効果音（poi-tear.mp3）は再生されない（issue #69）', async () => {
     setUpMatchingPondAndViewport();
     const playCountsBySrc = mockAudioPlayCounts();
 
@@ -370,9 +370,9 @@ describe('App', () => {
     render(<App />);
     const pond = screen.getByTestId('pond');
 
-    // 1匹目の金魚（id=0）から水平に7離れた位置（捕獲半径10以内・中心判定半径4の外側）にポイを合わせる
+    // 1匹目の金魚（id=0）から水平に9離れた位置（捕獲半径10以内・中心判定半径6の外側）にポイを合わせる
     const fish0 = goldfishInitialPosition(0);
-    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent + 7, fish0.yPercent));
+    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent + 9, fish0.yPercent));
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
@@ -386,7 +386,7 @@ describe('App', () => {
     expect(playCountFor(playCountsBySrc, 'poi-tear')).toBe(1);
   });
 
-  it('捕獲半径内だが中心（半径4）の外側で捕獲した場合は、ポイは破れない（issue #45）', async () => {
+  it('捕獲半径内だが中心（半径6）の外側で捕獲した場合は、ポイは破れない（issue #45）', async () => {
     setUpMatchingPondAndViewport();
 
     let now = 1000;
@@ -395,9 +395,9 @@ describe('App', () => {
     render(<App />);
     const pond = screen.getByTestId('pond');
 
-    // 1匹目の金魚（id=0）から水平に7離れた位置（捕獲半径10以内・中心判定半径4の外側）にポイを合わせる
+    // 1匹目の金魚（id=0）から水平に9離れた位置（捕獲半径10以内・中心判定半径6の外側）にポイを合わせる
     const fish0 = goldfishInitialPosition(0);
-    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent + 7, fish0.yPercent));
+    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent + 9, fish0.yPercent));
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
