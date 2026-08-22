@@ -1,3 +1,10 @@
+## [1.6.2](https://github.com/uchi-stock/kingyo/compare/v1.6.1...v1.6.2) (2026-08-22)
+
+
+### Bug Fixes
+
+* ポイの位置操作を速度を持たない直接レート制御に変更しドリフトを抑える ([#35](https://github.com/uchi-stock/kingyo/issues/35)) ([5bd73ea](https://github.com/uchi-stock/kingyo/commit/5bd73eae1cbc8590ec8193edb8b21616e620be3d))
+
 ## [1.6.1](https://github.com/uchi-stock/kingyo/compare/v1.6.0...v1.6.1) (2026-08-22)
 
 
