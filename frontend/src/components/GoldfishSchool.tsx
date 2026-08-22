@@ -27,9 +27,11 @@ export function GoldfishSchool() {
             // left/topではなくtransformで動かす。この要素はposition-fixedの
             // ビューポート全体に対する子要素のため、vw/vhをtranslateへ直接使うことで
             // レイアウト再計算（reflow）を伴わないGPU合成のみの更新にできる（issue #14）。
-            // 画像素材は頭が真上を向くよう補正済みのため、headingDeg（0度=右向き）に
-            // 合わせて回転させる（真上=270度が基準のため+90度のオフセットが必要）。issue #26
-            transform: `translate(${pose.xPercent}vw, ${pose.yPercent}vh) translate(-50%, -50%) rotate(${pose.headingDeg + 90}deg)`,
+            // 画像素材は頭が真上を向くよう補正済みのため、見た目の回転角度（displayHeadingDeg、
+            // 0度=右向き）に合わせて回転させる（真上=270度が基準のため+90度のオフセットが必要）。
+            // 転回時の唐突な向き反転を避けるため、物理的な進行方向（headingDeg）ではなく
+            // 滑らかに追従するdisplayHeadingDegを使う（issue #26, #29）
+            transform: `translate(${pose.xPercent}vw, ${pose.yPercent}vh) translate(-50%, -50%) rotate(${pose.displayHeadingDeg + 90}deg)`,
           }}
         />
       ))}

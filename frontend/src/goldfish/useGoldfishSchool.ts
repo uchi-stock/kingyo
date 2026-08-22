@@ -10,7 +10,7 @@ function createSeeds(count: number): number[] {
 // statesRefで現在の状態を保持し、フレームごとに直接更新する。
 export function useGoldfishSchool(count: number): GoldfishState[] {
   const [seeds] = useState(() => createSeeds(count))
-  const [initialStates] = useState(() => seeds.map(createInitialGoldfishState))
+  const [initialStates] = useState(() => seeds.map((seed) => createInitialGoldfishState(seed)))
   const statesRef = useRef<GoldfishState[]>(initialStates)
   const [states, setStates] = useState<GoldfishState[]>(initialStates)
 
