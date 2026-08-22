@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/uchi-stock/kingyo/compare/v1.13.1...v1.14.0) (2026-08-22)
+
+
+### Features
+
+* センサー許可を「有効にする」ボタンなしで取得する ([#65](https://github.com/uchi-stock/kingyo/issues/65)) ([5e2fbe4](https://github.com/uchi-stock/kingyo/commit/5e2fbe485f122c17884ff96dbe2da3b0d93c1fa5))
+
 ## [1.13.1](https://github.com/uchi-stock/kingyo/compare/v1.13.0...v1.13.1) (2026-08-22)
 
 
