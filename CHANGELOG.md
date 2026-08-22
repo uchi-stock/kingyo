@@ -1,3 +1,10 @@
+## [1.17.1](https://github.com/uchi-stock/kingyo/compare/v1.17.0...v1.17.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* 効果音がiOS Safari等の自動再生ポリシーでブロックされ鳴らない問題を修正 ([#74](https://github.com/uchi-stock/kingyo/issues/74)) ([9d34552](https://github.com/uchi-stock/kingyo/commit/9d34552f37bc6bcf57c5e8e3994a84bbfaed35e5)), closes [#73](https://github.com/uchi-stock/kingyo/issues/73)
+
 # [1.17.0](https://github.com/uchi-stock/kingyo/compare/v1.16.0...v1.17.0) (2026-08-22)
 
 
