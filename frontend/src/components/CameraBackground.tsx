@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useCameraStream } from '../camera/useCameraStream'
 
 export function CameraBackground() {
-  const { permission, stream, requestPermission } = useCameraStream()
+  const { permission, stream } = useCameraStream()
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -29,20 +29,10 @@ export function CameraBackground() {
         />
       )}
 
-      {permission === 'unknown' && (
-        <div className="d-flex h-100 align-items-center justify-content-center">
-          <button
-            type="button"
-            className="btn btn-light"
-            style={{ pointerEvents: 'auto' }}
-            onClick={() => {
-              void requestPermission()
-            }}
-          >
-            カメラを有効にする
-          </button>
-        </div>
-      )}
+      {/* カメラ映像に金魚を重ねるAR表現が未実装のため、AR対応するまで許可リクエストボタンを
+          非表示にする（カメラを有効にする意味が薄いため。issue #77）。useCameraStream・
+          permission === 'granted'時の<video>表示自体は、AR対応時に再度ボタンを表示する
+          だけで有効化できるよう残す */}
 
       {(permission === 'denied' || permission === 'unsupported') && (
         <p className="text-white text-center pt-5 px-3">
