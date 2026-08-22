@@ -94,6 +94,8 @@ describe('App', () => {
     window.DeviceMotionEvent = originalDeviceMotionEvent;
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth });
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight });
+    // ランキング（issue #89）がlocalStorageへ永続化されるため、テスト間で記録が漏れないようにする
+    localStorage.clear();
     vi.restoreAllMocks();
   });
 
@@ -410,5 +412,45 @@ describe('App', () => {
       expect(img).toHaveStyle({ opacity: '0' });
     });
     expect(screen.getByTestId('poi-marker').tagName).toBe('DIV');
+  });
+
+  it('初期状態ではタイム表示が00:00.0で、ランキングは空である（issue #89）', () => {
+    render(<App />);
+    expect(screen.getByTestId('elapsed-timer')).toHaveTextContent('00:00.0');
+    expect(screen.getByTestId('ranking-empty')).toBeInTheDocument();
+  });
+
+  it('ポイが破れると、その時点までの経過時間がランキングへ記録される（issue #89）', async () => {
+    setUpMatchingPondAndViewport();
+
+    let now = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    render(<App />);
+    const pond = screen.getByTestId('pond');
+
+    // 1匹目の金魚（id=0）の真上（距離0）にポイを合わせ、中心での捕獲＝破れを再現する
+    const fish0 = goldfishInitialPosition(0);
+    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent, fish0.yPercent));
+
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('poi-marker').tagName).toBe('IMG');
+    });
+
+    // タイマー停止に伴い、ランキングへ記録が追加され画面にも反映される
+    await waitFor(() => {
+      expect(screen.getByTestId('ranking-list')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('ranking-empty')).not.toBeInTheDocument();
+
+    const saved = JSON.parse(localStorage.getItem('kingyo-ranking') ?? '[]');
+    expect(saved).toHaveLength(1);
+    expect(typeof saved[0].timeMs).toBe('number');
+    expect(saved[0].timeMs).toBeGreaterThanOrEqual(0);
   });
 });
