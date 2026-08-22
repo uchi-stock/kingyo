@@ -1,8 +1,6 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { memo, useEffect, useRef, useState } from 'react'
 import poiTorn from '../assets/poi/poi-torn.png'
-import scoopSoundUrl from '../assets/sounds/scoop.wav'
-import { usePlaySound } from '../audio/usePlaySound'
 import type { ViewportPosition } from '../goldfish/catchGoldfish'
 import { usePoiMotion } from '../motion/usePoiMotion'
 
@@ -19,7 +17,6 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
   const [pondSize, setPondSize] = useState({ width: 0, height: 0 })
   const showManualControl = permission === 'denied' || permission === 'unsupported'
   const previousScoopCountRef = useRef(debug.scoopCount)
-  const playScoopSound = usePlaySound(scoopSoundUrl)
 
   // ポイの位置をtransformのpx移動量へ変換するため、pondの実サイズを測定する。
   // left/topではなくtransformで動かすことで、毎フレームの更新がレイアウト再計算（reflow）を
@@ -61,9 +58,6 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
     }
     previousScoopCountRef.current = debug.scoopCount
 
-    // 効果音は捕獲の成否に関わらず、掬う動作（フリック）そのものに対して鳴らす（issue #48）
-    playScoopSound()
-
     const pond = pondRef.current
     if (!pond || !onScoop) {
       return
@@ -75,7 +69,7 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
       xVw: (poiViewportX / window.innerWidth) * 100,
       yVh: (poiViewportY / window.innerHeight) * 100,
     })
-  }, [debug.scoopCount, offsetXPx, offsetYPx, onScoop, playScoopSound])
+  }, [debug.scoopCount, offsetXPx, offsetYPx, onScoop])
 
   return (
     <div
