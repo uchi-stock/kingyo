@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { renderHook } from '@testing-library/react'
+import { fireEvent, renderHook } from '@testing-library/react'
 import { usePlaySound } from './usePlaySound'
 
 describe('usePlaySound', () => {
@@ -89,5 +89,50 @@ describe('usePlaySound', () => {
 
     const { result } = renderHook(() => usePlaySound('/sounds/scoop.wav'))
     expect(() => result.current()).not.toThrow()
+  })
+
+  it('画面への最初のタップで、ミュート状態でplay()→pause()し要素をアンロックする（issue #73）', async () => {
+    const play = vi.fn().mockResolvedValue(undefined)
+    const pause = vi.fn()
+    const audioInstance = { play, pause, currentTime: 0, muted: false }
+    vi.stubGlobal(
+      'Audio',
+      vi.fn().mockImplementation(function AudioMock() {
+        return audioInstance
+      }),
+    )
+
+    renderHook(() => usePlaySound('/sounds/scoop.wav'))
+    fireEvent.pointerDown(window)
+
+    expect(play).toHaveBeenCalledTimes(1)
+    // アンロック中は実際に音が聞こえないよう、一時的にミュートされている
+    expect(audioInstance.muted).toBe(true)
+
+    // play()のPromise解決後、pause()され、ミュート状態が元に戻る
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(pause).toHaveBeenCalledTimes(1)
+    expect(audioInstance.muted).toBe(false)
+  })
+
+  it('アンロック後も、通常の再生呼び出しは引き続き機能する', async () => {
+    const play = vi.fn().mockResolvedValue(undefined)
+    const pause = vi.fn()
+    const audioInstance = { play, pause, currentTime: 5, muted: false }
+    vi.stubGlobal(
+      'Audio',
+      vi.fn().mockImplementation(function AudioMock() {
+        return audioInstance
+      }),
+    )
+
+    const { result } = renderHook(() => usePlaySound('/sounds/scoop.wav'))
+    fireEvent.pointerDown(window)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    result.current()
+
+    expect(play).toHaveBeenCalledTimes(2)
+    expect(audioInstance.currentTime).toBe(0)
   })
 })
