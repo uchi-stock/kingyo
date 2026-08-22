@@ -1,3 +1,10 @@
+## [1.3.4](https://github.com/uchi-stock/kingyo/compare/v1.3.3...v1.3.4) (2026-08-22)
+
+
+### Bug Fixes
+
+* ポイ・金魚の位置更新をleft/topからtransformベースへ変更する ([#20](https://github.com/uchi-stock/kingyo/issues/20)) ([d481e01](https://github.com/uchi-stock/kingyo/commit/d481e0132df8b113272c220d5798887963239d1a))
+
 ## [1.3.3](https://github.com/uchi-stock/kingyo/compare/v1.3.2...v1.3.3) (2026-08-21)
 
 
