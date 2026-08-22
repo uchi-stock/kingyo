@@ -8,7 +8,7 @@ import {
   type Acceleration2D,
   type PoiMotionState,
 } from './poiMotion'
-import { detectScoopGesture } from './scoopGesture'
+import { computeAngularVelocityDegPerSec, detectScoopGesture, updateRotationSuppression } from './scoopGesture'
 
 export type MotionPermissionState = 'unknown' | 'unsupported' | 'granted' | 'denied'
 
@@ -42,6 +42,7 @@ export interface PoiDebugInfo {
   motionEventCount: number
   lastAcceleration: Acceleration2D
   scoopCount: number
+  rotationSuppressed: boolean
 }
 
 export interface UsePoiMotionResult {
@@ -62,11 +63,14 @@ export function usePoiMotion(): UsePoiMotionResult {
   const smoothedAccelerationRef = useRef<Acceleration2D>({ x: 0, y: 0 })
   const gravityEstimateRef = useRef<Acceleration2D>({ x: 0, y: 0 })
   const motionEventCountRef = useRef(0)
-  const [debug, setDebug] = useState<Omit<PoiDebugInfo, 'scoopCount'>>({
+  const [debug, setDebug] = useState<Omit<PoiDebugInfo, 'scoopCount' | 'rotationSuppressed'>>({
     motionEventCount: 0,
     lastAcceleration: { x: 0, y: 0 },
   })
   const [scoopCount, setScoopCount] = useState(0)
+  const rotationSuppressionHoldMsRef = useRef(0)
+  const rotationSuppressedRef = useRef(false)
+  const [rotationSuppressed, setRotationSuppressed] = useState(false)
 
   // 角度表現・掬うジェスチャーの検出は位置操作の許可状態に関わらず、購読できる範囲で常時反映する
   useEffect(() => {
@@ -85,11 +89,27 @@ export function usePoiMotion(): UsePoiMotionResult {
 
       // 初回イベントはprevious値が無いため角速度を計算できず、スキップする
       if (previousBetaDeg !== null) {
-        const result = detectScoopGesture(betaDeg, previousBetaDeg, dtSeconds, cooldownMs)
-        cooldownMs = result.cooldownMs
-        if (result.triggered) {
+        const angularVelocityDegPerSec = computeAngularVelocityDegPerSec(betaDeg, previousBetaDeg, dtSeconds)
+
+        const scoopResult = detectScoopGesture(angularVelocityDegPerSec, dtSeconds, cooldownMs)
+        cooldownMs = scoopResult.cooldownMs
+        if (scoopResult.triggered) {
           scoopCountSoFar += 1
           setScoopCount(scoopCountSoFar)
+        }
+
+        // 掬うフリック等の素早い回転は、加速度センサーの値に一時的な変化を生み、
+        // ポイの水平位置操作に混入してしまうため、回転中は位置操作用の加速度入力を
+        // 抑制する（issue #42）。抑制状態はrAFループ側から参照するためrefで持つ
+        const suppressionResult = updateRotationSuppression(
+          angularVelocityDegPerSec,
+          dtSeconds,
+          rotationSuppressionHoldMsRef.current,
+        )
+        rotationSuppressionHoldMsRef.current = suppressionResult.holdMs
+        if (rotationSuppressedRef.current !== suppressionResult.suppressed) {
+          rotationSuppressedRef.current = suppressionResult.suppressed
+          setRotationSuppressed(suppressionResult.suppressed)
         }
       }
       previousBetaDeg = betaDeg
@@ -137,7 +157,11 @@ export function usePoiMotion(): UsePoiMotionResult {
       // （issue #36）。デバッグ表示（debug.lastAcceleration）はセンサーの生値の受信状況を
       // 確認する目的のため、平滑化前の値のまま残す。
       smoothedAccelerationRef.current = smoothAcceleration(latestAccelerationRef.current, smoothedAccelerationRef.current)
-      setMotionState((state) => stepPoiMotion(state, smoothedAccelerationRef.current, dtSeconds))
+      // 掬うフリック等の素早い回転中は、加速度センサーの値にスライド操作と区別できない
+      // 一時的な変化が混入するため、位置操作への反映のみをゼロ扱いにして抑制する。
+      // 平滑化自体は継続するため、抑制解除後は最新のセンサー値へ即座に復帰する（issue #42）
+      const accelerationForPosition = rotationSuppressedRef.current ? { x: 0, y: 0 } : smoothedAccelerationRef.current
+      setMotionState((state) => stepPoiMotion(state, accelerationForPosition, dtSeconds))
       // devicemotionイベントが実際に届いているかを画面上で確認できるようにする
       // デバッグ用の状態（issue #14: 実機で位置が中央から全く動かない事象の原因切り分け）
       setDebug({ motionEventCount: motionEventCountRef.current, lastAcceleration: latestAccelerationRef.current })
@@ -195,7 +219,7 @@ export function usePoiMotion(): UsePoiMotionResult {
   return {
     permission,
     pose: { xPercent: motionState.xPercent, yPercent: motionState.yPercent, angleDeg },
-    debug: { ...debug, scoopCount },
+    debug: { ...debug, scoopCount, rotationSuppressed },
     requestPermission,
     setPositionFromPointer,
   }

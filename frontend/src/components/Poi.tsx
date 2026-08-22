@@ -83,7 +83,8 @@ export function Poi() {
         data-testid="poi-debug"
       >
         permission: {permission} / events: {debug.motionEventCount} / accel: (
-        {debug.lastAcceleration.x.toFixed(2)}, {debug.lastAcceleration.y.toFixed(2)}) / scoop: {debug.scoopCount}
+        {debug.lastAcceleration.x.toFixed(2)}, {debug.lastAcceleration.y.toFixed(2)}) / scoop: {debug.scoopCount} /
+        suppressed: {debug.rotationSuppressed ? 'yes' : 'no'}
       </p>
     </div>
   )
