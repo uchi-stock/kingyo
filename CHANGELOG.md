@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/uchi-stock/kingyo/compare/v1.4.0...v1.5.0) (2026-08-22)
+
+
+### Features
+
+* トップページにバージョン・更新日時を表示する ([#27](https://github.com/uchi-stock/kingyo/issues/27)) ([134658f](https://github.com/uchi-stock/kingyo/commit/134658f45a0570f1f527ec772f449e06c3ff1ce6))
+
 # [1.4.0](https://github.com/uchi-stock/kingyo/compare/v1.3.4...v1.4.0) (2026-08-22)
 
 
