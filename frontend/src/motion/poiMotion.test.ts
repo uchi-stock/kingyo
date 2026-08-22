@@ -73,19 +73,20 @@ describe('stepPoiMotion', () => {
     expect(next.xPercent).toBeGreaterThan(50)
   })
 
-  it('デッドゾーンをわずかに超える程度の残留バイアスが加速度として与わり続けても、中心からのズレは一定範囲に収まる（一方向ドリフトの再発防止）', () => {
-    let state = CENTER_POI_MOTION_STATE
-    for (let i = 0; i < 600; i += 1) {
-      // デッドゾーン(0.3)をわずかに超える程度の、静止時にも起こりうる残留バイアス相当の加速度
-      state = stepPoiMotion(state, { x: 0, y: 0.35 }, 1 / 60)
-    }
-    // 復元力により、際限なく端(0または100)まで到達することはなく、途中の範囲で収束する
-    expect(state.yPercent).toBeLessThan(90)
-  })
-
-  it('中心から離れた状態で加速度が無くなると、時間の経過とともに中心へ緩やかに戻っていく', () => {
+  it('中心から離れた状態で操作をやめても、数秒程度では位置がほとんど中央へ戻らずその場に留まる', () => {
+    // 動かして止めた直後にポイが中央へ戻ってしまう不具合の再発防止（issue #39）
     let state = { xPercent: 80, yPercent: 50 }
     for (let i = 0; i < 300; i += 1) {
+      // 300フレーム(1/60秒刻み) = 5秒間、操作をやめて保持した状況を想定
+      state = stepPoiMotion(state, { x: 0, y: 0 }, 1 / 60)
+    }
+    expect(state.xPercent).toBeGreaterThan(78)
+  })
+
+  it('中心から離れた状態で加速度が無い状態が長時間続くと、時間の経過とともに中心へ緩やかに戻っていく', () => {
+    let state = { xPercent: 80, yPercent: 50 }
+    for (let i = 0; i < 3600; i += 1) {
+      // 3600フレーム(1/60秒刻み) = 60秒間の放置を想定
       state = stepPoiMotion(state, { x: 0, y: 0 }, 1 / 60)
     }
     expect(state.xPercent).toBeLessThan(80)
