@@ -1,5 +1,8 @@
 const CATCH_RADIUS_VW = 10 // ポイと金魚の中心間距離がこれ以内なら捕獲判定とする
-const TEAR_RADIUS_VW = 4 // ポイと金魚の中心間距離がこれ以内なら「中心で捉えた」＝ポイが破れる判定とする
+// ポイと金魚の中心間距離がこれ以内なら「中心で捉えた」＝ポイが破れる判定とする。
+// 実機フィードバックを踏まえ広げた（issue #87。従来4vw）。CATCH_RADIUS_VWより
+// 小さい値を維持すること
+const TEAR_RADIUS_VW = 6
 
 export interface ViewportPosition {
   xVw: number
