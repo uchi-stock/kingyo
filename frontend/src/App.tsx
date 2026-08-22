@@ -7,9 +7,12 @@ import { BuildInfo } from './components/BuildInfo';
 import { CameraBackground } from './components/CameraBackground';
 import { GOLDFISH_COUNT, GoldfishSchool } from './components/GoldfishSchool';
 import { Poi } from './components/Poi';
+import { RankingList } from './components/RankingList';
 import type { ViewportPosition } from './goldfish/catchGoldfish';
 import { useGoldfishSchool } from './goldfish/useGoldfishSchool';
 import type { ScoopIntensity } from './motion/scoopGesture';
+import { addRankingEntry, formatElapsedTime, loadRanking, type RankingEntry } from './ranking/ranking';
+import { useElapsedTimer } from './ranking/useElapsedTimer';
 
 function App() {
   // 掬うジェスチャー（Poi）と金魚の位置判定を組み合わせて捕獲するため、
@@ -22,6 +25,10 @@ function App() {
   const playCatchSuccessSound = usePlaySound(catchSuccessSoundUrl);
   const playScoopFailSound = usePlaySound(scoopFailSoundUrl);
   const playPoiTearSound = usePlaySound(poiTearSoundUrl);
+  // タイムは最初の掬うジェスチャーから計測を開始し、ポイが破れた時点で停止して
+  // ランキングへ記録する（issue #89）
+  const { elapsedMs, start: startTimer, stop: stopTimer } = useElapsedTimer();
+  const [ranking, setRanking] = useState<RankingEntry[]>(() => loadRanking());
 
   const handleScoop = useCallback(
     (poiPosition: ViewportPosition, intensity: ScoopIntensity) => {
@@ -30,6 +37,9 @@ function App() {
       if (isTorn) {
         return;
       }
+      // 最初の掬うジェスチャーでタイマーを開始する。2回目以降はstartTimer内でno-op（issue #89）
+      startTimer();
+
       if (intensity === 'forceful') {
         // 勢いよく掬うと、捕獲対象の有無・位置に関わらずポイが破れて失敗する
         // （issue #82, #85: 実際の金魚すくいで紙を強く扱うと破れる感覚に合わせる）
@@ -37,6 +47,7 @@ function App() {
         playPoiTearSound();
         startFleeingNearestGoldfish(poiPosition);
         setIsTorn(true);
+        setRanking(addRankingEntry(stopTimer()));
         return;
       }
       const result = catchNearestGoldfish(poiPosition);
@@ -51,6 +62,7 @@ function App() {
         // 中心での捕獲時は、捕獲成功音に加えて破れる音も重ねて鳴らす（issue #69）
         playPoiTearSound();
         setIsTorn(true);
+        setRanking(addRankingEntry(stopTimer()));
       }
     },
     [
@@ -60,6 +72,8 @@ function App() {
       playCatchSuccessSound,
       playScoopFailSound,
       playPoiTearSound,
+      startTimer,
+      stopTimer,
     ],
   );
 
@@ -70,9 +84,16 @@ function App() {
       <main className="container py-5 position-relative">
         <div className="bg-white bg-opacity-75 rounded-3 p-3 mb-3">
           <h1 className="fs-2 fw-bold">金魚掬い</h1>
+          <p className="mb-2 fs-5" data-testid="elapsed-timer">
+            タイム: {formatElapsedTime(elapsedMs)}
+          </p>
           <BuildInfo />
         </div>
         <Poi onScoop={handleScoop} isTorn={isTorn} />
+        <div className="bg-white bg-opacity-75 rounded-3 p-3 mt-3">
+          <h2 className="fs-6 fw-bold mb-2">ランキング</h2>
+          <RankingList entries={ranking} />
+        </div>
       </main>
     </>
   );
