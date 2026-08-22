@@ -44,7 +44,7 @@ describe('App', () => {
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
   });
 
-  it('掬うフリック操作をした瞬間、ポイの近くに金魚がいればその金魚が消える（issue #44）', async () => {
+  it('掬うフリック操作をした瞬間、ポイの近くに金魚がいればその金魚が拡大しながらフェードアウトして消える（issue #44, #52）', async () => {
     setUpMatchingPondAndViewport();
 
     let now = 1000;
@@ -66,6 +66,15 @@ describe('App', () => {
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
 
+    // 捕獲直後はフェードアウト演出中のため、まだDOMに残っている（不透明度0・拡大表示）
+    await waitFor(() => {
+      const img = screen.getAllByTestId('goldfish')[0].querySelector('img');
+      expect(img).toHaveStyle({ opacity: '0' });
+    });
+    expect(screen.getAllByTestId('goldfish')).toHaveLength(4);
+
+    // 演出時間（450ms）が経過すると、実際にDOMから除去される
+    now += 500;
     await waitFor(() => {
       expect(screen.getAllByTestId('goldfish')).toHaveLength(3);
     });
@@ -113,18 +122,18 @@ describe('App', () => {
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
 
     await waitFor(() => {
-      expect(screen.getAllByTestId('goldfish')).toHaveLength(3);
-    });
-    await waitFor(() => {
       expect(screen.getByTestId('poi-marker').tagName).toBe('IMG');
     });
     expect(screen.getByTestId('poi-marker').getAttribute('src')).toContain('poi-torn');
 
+    // 捕獲アニメーション（450ms）と、2匹目への掬うジェスチャーのクールダウン（500ms）を
+    // まとめて経過させる
+    now += 600;
+
     // 2匹目の金魚（id=1, xPercent=42, yPercent=83.6）の真上にポイを合わせ、
-    // クールダウン（500ms）経過後に再度掬うフリックを行っても捕獲できないことを確認する
+    // 再度掬うフリックを行っても捕獲できないことを確認する
     fireEvent.pointerDown(pond, { clientX: 200 * 0.42, clientY: 100 * 0.836 });
 
-    now += 600;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 120 }));
@@ -132,7 +141,9 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getByTestId('poi-debug').textContent).toContain('scoop: 2');
     });
-    expect(screen.getAllByTestId('goldfish')).toHaveLength(3);
+    await waitFor(() => {
+      expect(screen.getAllByTestId('goldfish')).toHaveLength(3);
+    });
   });
 
   it('捕獲半径内だが中心（半径4）の外側で捕獲した場合は、ポイは破れない（issue #45）', async () => {
@@ -154,7 +165,8 @@ describe('App', () => {
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
 
     await waitFor(() => {
-      expect(screen.getAllByTestId('goldfish')).toHaveLength(3);
+      const img = screen.getAllByTestId('goldfish')[0].querySelector('img');
+      expect(img).toHaveStyle({ opacity: '0' });
     });
     expect(screen.getByTestId('poi-marker').tagName).toBe('DIV');
   });

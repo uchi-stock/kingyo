@@ -11,6 +11,7 @@ function createPoses(count: number): GoldfishPose[] {
     headingDeg: 0,
     displayHeadingDeg: 0,
     turnCountdownMs: 5000,
+    isCaught: false,
   }))
 }
 
@@ -46,6 +47,29 @@ describe('GoldfishSchool', () => {
     for (const el of fish) {
       expect(el.style.transform).toMatch(/rotate\(-?\d+(\.\d+)?deg\)/)
       expect(el.style.transform).not.toContain('scaleX')
+    }
+  })
+
+  it('捕獲されていない金魚は、不透明かつ等倍で表示される（issue #52）', () => {
+    const poses = createPoses(1)
+    render(<GoldfishSchool goldfish={poses} />)
+    const img = screen.getByTestId('goldfish').querySelector('img')
+    expect(img).toHaveStyle({ opacity: '1', transform: 'scale(1)' })
+  })
+
+  it('捕獲された金魚は、拡大しながら不透明度0（フェードアウト）で表示される（issue #52）', () => {
+    const poses = createPoses(1)
+    poses[0].isCaught = true
+    render(<GoldfishSchool goldfish={poses} />)
+    const img = screen.getByTestId('goldfish').querySelector('img')
+    expect(img).toHaveStyle({ opacity: '0', transform: 'scale(1.6)' })
+  })
+
+  it('位置・回転を担う要素にはCSSトランジションをかけない（毎フレーム更新に補間が入り遅延するのを防ぐため。issue #14, #52）', () => {
+    render(<GoldfishSchool goldfish={createPoses(4)} />)
+    const fish = screen.getAllByTestId('goldfish')
+    for (const el of fish) {
+      expect(el.style.transition).toBe('')
     }
   })
 })

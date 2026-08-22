@@ -23,26 +23,38 @@ export function GoldfishSchool({ goldfish }: GoldfishSchoolProps) {
       data-testid="goldfish-school"
     >
       {goldfish.map((pose) => (
-        <img
+        <div
           key={pose.id}
-          // 捕獲による除去後も配列内の位置（index）がずれるため、配列の並び順ではなく
-          // 安定したidを基準に画像を割り当てる
-          src={GOLDFISH_IMAGES[pose.id % GOLDFISH_IMAGES.length]}
-          alt=""
           className="position-absolute top-0 start-0"
           data-testid="goldfish"
           style={{
-            width: '3.5rem',
             // left/topではなくtransformで動かす。この要素はposition-fixedの
             // ビューポート全体に対する子要素のため、vw/vhをtranslateへ直接使うことで
             // レイアウト再計算（reflow）を伴わないGPU合成のみの更新にできる（issue #14）。
-            // 画像素材は頭が真上を向くよう補正済みのため、見た目の回転角度（displayHeadingDeg、
-            // 0度=右向き）に合わせて回転させる（真上=270度が基準のため+90度のオフセットが必要）。
             // 転回時の唐突な向き反転を避けるため、物理的な進行方向（headingDeg）ではなく
-            // 滑らかに追従するdisplayHeadingDegを使う（issue #26, #29）
+            // 滑らかに追従するdisplayHeadingDegを使う（issue #26, #29）。
+            // 位置・回転は毎フレームJSで直接更新するため、この要素自体にはCSSトランジションを
+            // かけない（かけると不要な補間が入り視覚的な遅延が生じる。issue #14と同種の問題）
             transform: `translate(${pose.xPercent}vw, ${pose.yPercent}vh) translate(-50%, -50%) rotate(${pose.displayHeadingDeg + 90}deg)`,
           }}
-        />
+        >
+          <img
+            // 捕獲による除去後も配列内の位置（index）がずれるため、配列の並び順ではなく
+            // 安定したidを基準に画像を割り当てる
+            src={GOLDFISH_IMAGES[pose.id % GOLDFISH_IMAGES.length]}
+            alt=""
+            style={{
+              width: '3.5rem',
+              display: 'block',
+              // 拡大率・不透明度のみをCSSトランジションでアニメーションする。位置・回転を
+              // 担う親要素とは別のこの要素に分離することで、遊泳中の毎フレーム更新には
+              // トランジションが影響しない（issue #52）
+              transition: 'transform 450ms ease-out, opacity 450ms ease-out',
+              opacity: pose.isCaught ? 0 : 1,
+              transform: pose.isCaught ? 'scale(1.6)' : 'scale(1)',
+            }}
+          />
+        </div>
       ))}
     </div>
   )
