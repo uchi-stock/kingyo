@@ -102,10 +102,12 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
       ) : (
         <div
           data-testid="poi-marker"
-          className="position-absolute top-50 start-50 rounded-circle border border-4 border-white"
+          className="position-absolute top-50 start-50 rounded-circle border border-4"
           style={{
             width: '4rem',
             height: '4rem',
+            // 破れた状態のマーカー（poiTorn画像）の輪の色（#F4D32C）と揃える（issue #62）
+            borderColor: '#F4D32C',
             transform: `translate(-50%, -50%) translate(${offsetXPx}px, ${offsetYPx}px) rotate(${pose.angleDeg}deg)`,
           }}
           aria-hidden="true"
