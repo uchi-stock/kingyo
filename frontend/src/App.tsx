@@ -9,6 +9,7 @@ import { GOLDFISH_COUNT, GoldfishSchool } from './components/GoldfishSchool';
 import { Poi } from './components/Poi';
 import type { ViewportPosition } from './goldfish/catchGoldfish';
 import { useGoldfishSchool } from './goldfish/useGoldfishSchool';
+import type { ScoopIntensity } from './motion/scoopGesture';
 
 function App() {
   // 掬うジェスチャー（Poi）と金魚の位置判定を組み合わせて捕獲するため、
@@ -23,9 +24,10 @@ function App() {
   const playPoiTearSound = usePlaySound(poiTearSoundUrl);
 
   const handleScoop = useCallback(
-    (poiPosition: ViewportPosition) => {
-      // ポイが既に破れている場合は捕獲を試みず、常に「失敗」として扱う
-      const result = isTorn ? null : catchNearestGoldfish(poiPosition);
+    (poiPosition: ViewportPosition, intensity: ScoopIntensity) => {
+      // ポイが既に破れている場合、または勢いよく掬った場合は、位置に関わらず
+      // 捕獲を試みず常に「失敗」として扱う（issue #82）
+      const result = isTorn || intensity === 'forceful' ? null : catchNearestGoldfish(poiPosition);
       if (result === null) {
         // 捕獲できなかった場合、専用の効果音を鳴らし、驚いた近くの金魚が逃げる（issue #53, #68）
         playScoopFailSound();

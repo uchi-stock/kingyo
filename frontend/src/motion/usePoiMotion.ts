@@ -8,7 +8,12 @@ import {
   type Acceleration2D,
   type PoiMotionState,
 } from './poiMotion'
-import { computeAngularVelocityDegPerSec, detectScoopGesture, updateRotationSuppression } from './scoopGesture'
+import {
+  computeAngularVelocityDegPerSec,
+  detectScoopGesture,
+  updateRotationSuppression,
+  type ScoopIntensity,
+} from './scoopGesture'
 
 export type MotionPermissionState = 'unknown' | 'unsupported' | 'granted' | 'denied'
 
@@ -42,6 +47,8 @@ export interface PoiDebugInfo {
   motionEventCount: number
   lastAcceleration: Acceleration2D
   scoopCount: number
+  // 直近に検出された掬うジェスチャーの勢い。scoopCountとあわせて更新される（issue #82）
+  lastScoopIntensity: ScoopIntensity | null
   rotationSuppressed: boolean
 }
 
@@ -66,11 +73,12 @@ export function usePoiMotion(isTorn = false): UsePoiMotionResult {
   const smoothedAccelerationRef = useRef<Acceleration2D>({ x: 0, y: 0 })
   const gravityEstimateRef = useRef<Acceleration2D>({ x: 0, y: 0 })
   const motionEventCountRef = useRef(0)
-  const [debug, setDebug] = useState<Omit<PoiDebugInfo, 'scoopCount' | 'rotationSuppressed'>>({
+  const [debug, setDebug] = useState<Omit<PoiDebugInfo, 'scoopCount' | 'lastScoopIntensity' | 'rotationSuppressed'>>({
     motionEventCount: 0,
     lastAcceleration: { x: 0, y: 0 },
   })
   const [scoopCount, setScoopCount] = useState(0)
+  const [lastScoopIntensity, setLastScoopIntensity] = useState<ScoopIntensity | null>(null)
   const rotationSuppressionHoldMsRef = useRef(0)
   const rotationSuppressedRef = useRef(false)
   const [rotationSuppressed, setRotationSuppressed] = useState(false)
@@ -104,6 +112,7 @@ export function usePoiMotion(isTorn = false): UsePoiMotionResult {
         if (scoopResult.triggered) {
           scoopCountSoFar += 1
           setScoopCount(scoopCountSoFar)
+          setLastScoopIntensity(scoopResult.intensity)
         }
 
         // 掬うフリック等の素早い回転は、加速度センサーの値に一時的な変化を生み、
@@ -251,7 +260,7 @@ export function usePoiMotion(isTorn = false): UsePoiMotionResult {
   return {
     permission,
     pose: { xPercent: motionState.xPercent, yPercent: motionState.yPercent, angleDeg },
-    debug: { ...debug, scoopCount, rotationSuppressed },
+    debug: { ...debug, scoopCount, lastScoopIntensity, rotationSuppressed },
     requestPermission,
     setPositionFromPointer,
   }

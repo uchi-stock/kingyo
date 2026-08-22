@@ -3,9 +3,12 @@ import { memo, useEffect, useRef, useState } from 'react'
 import poiTorn from '../assets/poi/poi-torn.png'
 import type { ViewportPosition } from '../goldfish/catchGoldfish'
 import { usePoiMotion } from '../motion/usePoiMotion'
+import type { ScoopIntensity } from '../motion/scoopGesture'
 
 export interface PoiProps {
-  onScoop?: (position: ViewportPosition) => void
+  // intensityは掬う動作の勢い（issue #82）。優しく('gentle')掬えたか、
+  // 勢いよく('forceful')掬ったかを呼び出し側（App.tsx）の成否判定に使う
+  onScoop?: (position: ViewportPosition, intensity: ScoopIntensity) => void
   // ポイの中心で金魚を捕獲し紙が破れた状態かどうか（issue #45）。
   // 破れた状態ではマーカー表示を破れ画像に切り替える
   isTorn?: boolean
@@ -59,17 +62,20 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
     previousScoopCountRef.current = debug.scoopCount
 
     const pond = pondRef.current
-    if (!pond || !onScoop) {
+    if (!pond || !onScoop || !debug.lastScoopIntensity) {
       return
     }
     const rect = pond.getBoundingClientRect()
     const poiViewportX = rect.left + rect.width / 2 + offsetXPx
     const poiViewportY = rect.top + rect.height / 2 + offsetYPx
-    onScoop({
-      xVw: (poiViewportX / window.innerWidth) * 100,
-      yVh: (poiViewportY / window.innerHeight) * 100,
-    })
-  }, [debug.scoopCount, offsetXPx, offsetYPx, onScoop])
+    onScoop(
+      {
+        xVw: (poiViewportX / window.innerWidth) * 100,
+        yVh: (poiViewportY / window.innerHeight) * 100,
+      },
+      debug.lastScoopIntensity,
+    )
+  }, [debug.scoopCount, debug.lastScoopIntensity, offsetXPx, offsetYPx, onScoop])
 
   return (
     <div

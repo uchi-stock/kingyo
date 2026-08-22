@@ -29,6 +29,7 @@ describe('detectScoopGesture', () => {
   it('角速度が閾値未満のゆっくりとした傾きの変化では検出されない', () => {
     const result = detectScoopGesture(10, 0.5, 0)
     expect(result.triggered).toBe(false)
+    expect(result.intensity).toBeNull()
   })
 
   it('逆方向（角速度が負の急激な変化）では検出されない', () => {
@@ -60,6 +61,19 @@ describe('detectScoopGesture', () => {
     const result = detectScoopGesture(800, 0, 0)
     expect(result.triggered).toBe(false)
     expect(Number.isFinite(result.cooldownMs)).toBe(true)
+  })
+
+  it('検出閾値超〜勢いの閾値以下の角速度では、優しい（gentle）掬いとして検出される（issue #82）', () => {
+    // 検出閾値（180）は超えるが、勢いの閾値（2400）以下
+    const result = detectScoopGesture(800, 0.05, 0)
+    expect(result.triggered).toBe(true)
+    expect(result.intensity).toBe('gentle')
+  })
+
+  it('勢いの閾値を超える角速度では、勢いのよい（forceful）掬いとして検出される（issue #82）', () => {
+    const result = detectScoopGesture(3000, 0.05, 0)
+    expect(result.triggered).toBe(true)
+    expect(result.intensity).toBe('forceful')
   })
 })
 

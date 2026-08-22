@@ -1,4 +1,7 @@
 const SCOOP_ANGULAR_VELOCITY_THRESHOLD_DEG_PER_SEC = 180 // この角速度を超える素早い傾きの変化を「掬う」フリックとして検出する
+// この角速度を超える「勢いのよい」フリックは、位置に関わらず失敗として扱う（issue #82）。
+// 実機での検証待ちの暫定値であり、実際の操作感に応じて調整する
+const SCOOP_FORCEFUL_ANGULAR_VELOCITY_THRESHOLD_DEG_PER_SEC = 2400
 const SCOOP_COOLDOWN_MS = 500 // 連続検出を防ぐための最小間隔
 const MIN_DT_SECONDS = 0.001 // 0除算や極小dtによる角速度の異常な増幅（ノイズの誤検出）を防ぐ下限
 const ROTATION_SUPPRESSION_THRESHOLD_DEG_PER_SEC = 90 // この角速度を超える回転中は、加速度による位置操作を抑制する
@@ -11,9 +14,15 @@ export function computeAngularVelocityDegPerSec(currentDeg: number, previousDeg:
   return (currentDeg - previousDeg) / dtSeconds
 }
 
+// 掬う動作の勢い。優しく掬えば'gentle'（位置に応じて成否判定）、勢いよく掬えば
+// 'forceful'（位置に関わらず常に失敗）として扱う（issue #82）
+export type ScoopIntensity = 'gentle' | 'forceful'
+
 export interface ScoopGestureResult {
   triggered: boolean
   cooldownMs: number
+  // triggeredがtrueの場合のみ値を持つ
+  intensity: ScoopIntensity | null
 }
 
 // 端末の前後方向の傾き（beta）の角速度から、素早く煽るような動き（「掬う」フリック）を
@@ -31,13 +40,15 @@ export function detectScoopGesture(
   const nextCooldownMs = Math.max(0, cooldownMsRemaining - dtSecondsRaw * 1000)
 
   if (dtSecondsRaw <= 0 || nextCooldownMs > 0) {
-    return { triggered: false, cooldownMs: nextCooldownMs }
+    return { triggered: false, cooldownMs: nextCooldownMs, intensity: null }
   }
 
   if (angularVelocityDegPerSec > SCOOP_ANGULAR_VELOCITY_THRESHOLD_DEG_PER_SEC) {
-    return { triggered: true, cooldownMs: SCOOP_COOLDOWN_MS }
+    const intensity: ScoopIntensity =
+      angularVelocityDegPerSec > SCOOP_FORCEFUL_ANGULAR_VELOCITY_THRESHOLD_DEG_PER_SEC ? 'forceful' : 'gentle'
+    return { triggered: true, cooldownMs: SCOOP_COOLDOWN_MS, intensity }
   }
-  return { triggered: false, cooldownMs: nextCooldownMs }
+  return { triggered: false, cooldownMs: nextCooldownMs, intensity: null }
 }
 
 export interface RotationSuppressionResult {

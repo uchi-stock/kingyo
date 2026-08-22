@@ -177,6 +177,48 @@ describe('Poi', () => {
     vi.restoreAllMocks()
   })
 
+  it('優しい速度（勢いの閾値以下）で掬うと、onScoopへgentleとして渡される（issue #82）', async () => {
+    let now = 1000
+    vi.spyOn(performance, 'now').mockImplementation(() => now)
+    const onScoop = vi.fn()
+
+    render(<Poi onScoop={onScoop} />)
+
+    now += 50
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }))
+    // 50ms経過でbetaが60度変化 = 1200度/秒（検出閾値180は超えるが勢いの閾値2400は超えない）
+    now += 50
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }))
+
+    await waitFor(() => {
+      expect(onScoop).toHaveBeenCalledTimes(1)
+    })
+    expect(onScoop.mock.calls[0][1]).toBe('gentle')
+
+    vi.restoreAllMocks()
+  })
+
+  it('勢いのよい速度（勢いの閾値超）で掬うと、onScoopへforcefulとして渡される（issue #82）', async () => {
+    let now = 1000
+    vi.spyOn(performance, 'now').mockImplementation(() => now)
+    const onScoop = vi.fn()
+
+    render(<Poi onScoop={onScoop} />)
+
+    now += 50
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }))
+    // 50ms経過でbetaが300度変化 = 6000度/秒（勢いの閾値2400度/秒を超える）
+    now += 50
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 300 }))
+
+    await waitFor(() => {
+      expect(onScoop).toHaveBeenCalledTimes(1)
+    })
+    expect(onScoop.mock.calls[0][1]).toBe('forceful')
+
+    vi.restoreAllMocks()
+  })
+
   it('通常のゆっくりとした傾き操作では、掬うジェスチャーとして誤検出されずonScoopが呼び出されない', async () => {
     let now = 1000
     vi.spyOn(performance, 'now').mockImplementation(() => now)
