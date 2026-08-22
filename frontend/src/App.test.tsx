@@ -453,4 +453,33 @@ describe('App', () => {
     expect(typeof saved[0].timeMs).toBe('number');
     expect(saved[0].timeMs).toBeGreaterThanOrEqual(0);
   });
+
+  it('ポイが破れる前は「ゲームオーバー」表示が出ない（issue #91）', () => {
+    render(<App />);
+    expect(screen.queryByTestId('game-over-message')).not.toBeInTheDocument();
+  });
+
+  it('ポイが破れると「ゲームオーバー」表示が出る（issue #91）', async () => {
+    setUpMatchingPondAndViewport();
+
+    let now = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    render(<App />);
+    const pond = screen.getByTestId('pond');
+
+    // 1匹目の金魚（id=0）の真上（距離0）にポイを合わせ、中心での捕獲＝破れを再現する
+    const fish0 = goldfishInitialPosition(0);
+    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent, fish0.yPercent));
+
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('game-over-message')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('game-over-message')).toHaveTextContent('ゲームオーバー');
+  });
 });
