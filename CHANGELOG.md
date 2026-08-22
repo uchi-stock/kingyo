@@ -1,3 +1,10 @@
+## [1.20.1](https://github.com/uchi-stock/kingyo/compare/v1.20.0...v1.20.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* 勢いよく掬うとポイが破れる仕様にし、判定閾値を厳しくする ([#86](https://github.com/uchi-stock/kingyo/issues/86)) ([45cbddc](https://github.com/uchi-stock/kingyo/commit/45cbddc27c50842f80d8e5ac2e0d5e7f5f1e0f75)), closes [#85](https://github.com/uchi-stock/kingyo/issues/85)
+
 # [1.20.0](https://github.com/uchi-stock/kingyo/compare/v1.19.2...v1.20.0) (2026-08-22)
 
 
