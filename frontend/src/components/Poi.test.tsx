@@ -206,6 +206,26 @@ describe('Poi', () => {
     vi.restoreAllMocks()
   })
 
+  it('掬うフリック相当の素早い傾き変化があると、デバッグ表示の抑制状態がyesになる（issue #42）', async () => {
+    let now = 1000
+    vi.spyOn(performance, 'now').mockImplementation(() => now)
+
+    render(<Poi />)
+    expect(screen.getByTestId('poi-debug').textContent).toContain('suppressed: no')
+
+    now += 50
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }))
+    // 50ms経過でbetaが60度変化 = 1200度/秒（抑制の閾値90度/秒を超える回転）
+    now += 50
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('poi-debug').textContent).toContain('suppressed: yes')
+    })
+
+    vi.restoreAllMocks()
+  })
+
   it('フォールバック操作時、ポインタ操作でポイの位置が更新される', () => {
     // @ts-expect-error センサーAPIが存在しない環境を再現し、フォールバック操作を有効にする
     delete window.DeviceMotionEvent
