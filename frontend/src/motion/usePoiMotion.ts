@@ -8,6 +8,7 @@ import {
   type Acceleration2D,
   type PoiMotionState,
 } from './poiMotion'
+import { detectScoopGesture } from './scoopGesture'
 
 export type MotionPermissionState = 'unknown' | 'unsupported' | 'granted' | 'denied'
 
@@ -40,6 +41,7 @@ export interface PoiPose {
 export interface PoiDebugInfo {
   motionEventCount: number
   lastAcceleration: Acceleration2D
+  scoopCount: number
 }
 
 export interface UsePoiMotionResult {
@@ -60,12 +62,37 @@ export function usePoiMotion(): UsePoiMotionResult {
   const smoothedAccelerationRef = useRef<Acceleration2D>({ x: 0, y: 0 })
   const gravityEstimateRef = useRef<Acceleration2D>({ x: 0, y: 0 })
   const motionEventCountRef = useRef(0)
-  const [debug, setDebug] = useState<PoiDebugInfo>({ motionEventCount: 0, lastAcceleration: { x: 0, y: 0 } })
+  const [debug, setDebug] = useState<Omit<PoiDebugInfo, 'scoopCount'>>({
+    motionEventCount: 0,
+    lastAcceleration: { x: 0, y: 0 },
+  })
+  const [scoopCount, setScoopCount] = useState(0)
 
-  // 角度表現は位置操作の許可状態に関わらず、購読できる範囲で常時反映する
+  // 角度表現・掬うジェスチャーの検出は位置操作の許可状態に関わらず、購読できる範囲で常時反映する
   useEffect(() => {
+    let previousBetaDeg: number | null = null
+    let previousTime = performance.now()
+    let cooldownMs = 0
+    let scoopCountSoFar = 0
+
     const handleOrientation = (event: DeviceOrientationEvent) => {
       setAngleDeg(orientationToAngleDeg(event.gamma))
+
+      const now = performance.now()
+      const dtSeconds = (now - previousTime) / 1000
+      previousTime = now
+      const betaDeg = event.beta ?? 0
+
+      // 初回イベントはprevious値が無いため角速度を計算できず、スキップする
+      if (previousBetaDeg !== null) {
+        const result = detectScoopGesture(betaDeg, previousBetaDeg, dtSeconds, cooldownMs)
+        cooldownMs = result.cooldownMs
+        if (result.triggered) {
+          scoopCountSoFar += 1
+          setScoopCount(scoopCountSoFar)
+        }
+      }
+      previousBetaDeg = betaDeg
     }
     window.addEventListener('deviceorientation', handleOrientation)
     return () => window.removeEventListener('deviceorientation', handleOrientation)
@@ -168,7 +195,7 @@ export function usePoiMotion(): UsePoiMotionResult {
   return {
     permission,
     pose: { xPercent: motionState.xPercent, yPercent: motionState.yPercent, angleDeg },
-    debug,
+    debug: { ...debug, scoopCount },
     requestPermission,
     setPositionFromPointer,
   }

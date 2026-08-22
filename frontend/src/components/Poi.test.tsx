@@ -165,6 +165,47 @@ describe('Poi', () => {
     })
   })
 
+  it('傾き（beta）を素早く変化させると（掬うフリック相当）、デバッグ表示の検出回数が増加する', async () => {
+    let now = 1000
+    vi.spyOn(performance, 'now').mockImplementation(() => now)
+
+    render(<Poi />)
+    expect(screen.getByTestId('poi-debug').textContent).toContain('scoop: 0')
+
+    now += 50
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }))
+
+    // 50ms経過でbetaが60度変化 = 1200度/秒の角速度（閾値180度/秒を超える）
+    now += 50
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('poi-debug').textContent).toContain('scoop: 1')
+    })
+
+    vi.restoreAllMocks()
+  })
+
+  it('通常のゆっくりとした傾き操作では、掬うジェスチャーとして誤検出されない', async () => {
+    let now = 1000
+    vi.spyOn(performance, 'now').mockImplementation(() => now)
+
+    render(<Poi />)
+
+    now += 500
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }))
+    // 500ms経過でbetaが5度変化 = 10度/秒の角速度（通常の傾き操作相当）
+    now += 500
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 5 }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('poi-debug').textContent).toContain('permission: granted')
+    })
+    expect(screen.getByTestId('poi-debug').textContent).toContain('scoop: 0')
+
+    vi.restoreAllMocks()
+  })
+
   it('フォールバック操作時、ポインタ操作でポイの位置が更新される', () => {
     // @ts-expect-error センサーAPIが存在しない環境を再現し、フォールバック操作を有効にする
     delete window.DeviceMotionEvent
