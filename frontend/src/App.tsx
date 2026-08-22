@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import catchSuccessSoundUrl from './assets/sounds/catch-success.mp3';
+import poiTearSoundUrl from './assets/sounds/poi-tear.mp3';
 import scoopFailSoundUrl from './assets/sounds/scoop-fail.mp3';
 import { usePlaySound } from './audio/usePlaySound';
 import { BuildInfo } from './components/BuildInfo';
@@ -16,9 +17,10 @@ function App() {
   // ポイの中心で金魚を捕獲すると紙が破れ、以降は捕獲できなくなる（issue #45）
   const [isTorn, setIsTorn] = useState(false);
   // 掬うジェスチャーそのものの効果音（issue #48）はPoi.tsx側で鳴らすため、
-  // 捕獲の成否専用の効果音はここ（捕獲の成否を知っているApp側）で鳴らす（issue #66, #68）
+  // 捕獲の成否・ポイが破れた瞬間専用の効果音はここ（それらを知っているApp側）で鳴らす（issue #66, #68, #69）
   const playCatchSuccessSound = usePlaySound(catchSuccessSoundUrl);
   const playScoopFailSound = usePlaySound(scoopFailSoundUrl);
+  const playPoiTearSound = usePlaySound(poiTearSoundUrl);
 
   const handleScoop = useCallback(
     (poiPosition: ViewportPosition) => {
@@ -32,10 +34,19 @@ function App() {
       }
       playCatchSuccessSound();
       if (result.isCenterHit) {
+        // 中心での捕獲時は、捕獲成功音に加えて破れる音も重ねて鳴らす（issue #69）
+        playPoiTearSound();
         setIsTorn(true);
       }
     },
-    [isTorn, catchNearestGoldfish, startFleeingNearestGoldfish, playCatchSuccessSound, playScoopFailSound],
+    [
+      isTorn,
+      catchNearestGoldfish,
+      startFleeingNearestGoldfish,
+      playCatchSuccessSound,
+      playScoopFailSound,
+      playPoiTearSound,
+    ],
   );
 
   return (

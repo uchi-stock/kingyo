@@ -276,6 +276,70 @@ describe('App', () => {
     );
   });
 
+  it('ポイの中心で金魚を捕獲すると、破れ専用の効果音（poi-tear.mp3）が捕獲成功音に重ねて再生される（issue #69）', async () => {
+    setUpMatchingPondAndViewport();
+
+    const play = vi.fn().mockResolvedValue(undefined);
+    const AudioMock = vi.fn().mockImplementation(function AudioMock(src?: string) {
+      return { play, currentTime: 0, src };
+    });
+    vi.stubGlobal('Audio', AudioMock);
+
+    let now = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    render(<App />);
+    const pond = screen.getByTestId('pond');
+
+    // 1匹目の金魚（id=0）の真上（距離0）にポイを合わせ、中心での捕獲を再現する
+    const fish0 = goldfishInitialPosition(0);
+    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent, fish0.yPercent));
+
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
+
+    await waitFor(() => {
+      expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('poi-tear'))).toBe(true);
+    });
+    expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('catch-success'))).toBe(
+      true,
+    );
+  });
+
+  it('捕獲半径内だが中心（半径4）の外側で捕獲した場合は、破れ専用の効果音（poi-tear.mp3）は再生されない（issue #69）', async () => {
+    setUpMatchingPondAndViewport();
+
+    const play = vi.fn().mockResolvedValue(undefined);
+    const AudioMock = vi.fn().mockImplementation(function AudioMock(src?: string) {
+      return { play, currentTime: 0, src };
+    });
+    vi.stubGlobal('Audio', AudioMock);
+
+    let now = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    render(<App />);
+    const pond = screen.getByTestId('pond');
+
+    // 1匹目の金魚（id=0）から水平に7離れた位置（捕獲半径10以内・中心判定半径4の外側）にポイを合わせる
+    const fish0 = goldfishInitialPosition(0);
+    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent + 7, fish0.yPercent));
+
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
+
+    await waitFor(() => {
+      expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('catch-success'))).toBe(
+        true,
+      );
+    });
+    expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('poi-tear'))).toBe(false);
+  });
+
   it('捕獲半径内だが中心（半径4）の外側で捕獲した場合は、ポイは破れない（issue #45）', async () => {
     setUpMatchingPondAndViewport();
 
