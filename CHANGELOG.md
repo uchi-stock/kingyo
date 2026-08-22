@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/uchi-stock/kingyo/compare/v1.5.1...v1.6.0) (2026-08-22)
+
+
+### Features
+
+* 金魚の転回を滑らかにし、ランダムな方向転換を追加する ([#31](https://github.com/uchi-stock/kingyo/issues/31)) ([388efc3](https://github.com/uchi-stock/kingyo/commit/388efc3ea9ae2e3a022b1f25320a3babe08b8b96))
+
 ## [1.5.1](https://github.com/uchi-stock/kingyo/compare/v1.5.0...v1.5.1) (2026-08-22)
 
 
