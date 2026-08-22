@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/uchi-stock/kingyo/compare/v1.7.1...v1.8.0) (2026-08-22)
+
+
+### Features
+
+* 掬うジェスチャーと金魚の位置判定を組み合わせ、捕獲した金魚を消す ([#46](https://github.com/uchi-stock/kingyo/issues/46)) ([8f9c35d](https://github.com/uchi-stock/kingyo/commit/8f9c35dfb499e6e20efaec6b444a5808de017b6b))
+
 ## [1.7.1](https://github.com/uchi-stock/kingyo/compare/v1.7.0...v1.7.1) (2026-08-22)
 
 
