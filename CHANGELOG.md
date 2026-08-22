@@ -1,3 +1,10 @@
+## [1.11.1](https://github.com/uchi-stock/kingyo/compare/v1.11.0...v1.11.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* ポイの中心復元力を適度な強さへ調整する ([#58](https://github.com/uchi-stock/kingyo/issues/58)) ([2a245f6](https://github.com/uchi-stock/kingyo/commit/2a245f6078db3ad94122c7c5904042e3c26feba0))
+
 # [1.11.0](https://github.com/uchi-stock/kingyo/compare/v1.10.0...v1.11.0) (2026-08-22)
 
 
