@@ -11,5 +11,10 @@ jobs:
     with:
       packages: '[{"dir":"frontend","build":true,"node_version":22}]'
       skip_verification_on_push: true
+      # frontend/src配下でdev-standards submoduleのshared/ui/*.cssをsymlink共有している
+      # ため（sync-manifest.local.json）、CIのcheckoutでsubmoduleを取得する必要がある
+      # （dev-standards docs参照。未取得のままbuildするとsymlinkの参照先が存在せず
+      # ENOENTで失敗する）
+      enable_standards_check: true
     secrets:
       BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
