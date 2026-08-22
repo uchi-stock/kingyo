@@ -215,4 +215,66 @@ describe('Poi', () => {
     // xPercent:50 → pond中央からのオフセット0px、yPercent:25 → 中央から-25%分（-25px）上
     expect(marker.style.transform).toContain('translate(0px, -25px)')
   })
+
+  it('ポイが破れている場合、devicemotionによる位置更新を受け付けない（issue #79）', async () => {
+    mockPondSize(200, 100)
+    render(<Poi isTorn />)
+
+    fireEvent(
+      window,
+      new DeviceMotionEvent('devicemotion', { acceleration: { x: 1, y: 0, z: 0 } }),
+    )
+
+    // 破れた表示（IMG）のまま、位置は中央から動かない
+    const marker = screen.getByTestId('poi-marker')
+    expect(marker.tagName).toBe('IMG')
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(marker.style.transform).toContain('translate(0px, 0px)')
+  })
+
+  it('ポイが破れている場合、deviceorientationによる角度更新を受け付けない（issue #79）', () => {
+    mockPondSize(200, 100)
+    render(<Poi isTorn />)
+    const marker = screen.getByTestId('poi-marker')
+
+    fireEvent(
+      window,
+      new DeviceOrientationEvent('deviceorientation', { beta: 45, gamma: 30 }),
+    )
+
+    expect(marker.style.transform).toContain('rotate(0deg)')
+  })
+
+  it('ポイが破れている場合、掬うジェスチャーを検出せずonScoopも呼び出されない（issue #79）', async () => {
+    let now = 1000
+    vi.spyOn(performance, 'now').mockImplementation(() => now)
+    const onScoop = vi.fn()
+
+    render(<Poi onScoop={onScoop} isTorn />)
+
+    now += 50
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }))
+    now += 50
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }))
+
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(onScoop).not.toHaveBeenCalled()
+
+    vi.restoreAllMocks()
+  })
+
+  it('ポイが破れている場合、フォールバック操作（ポインタ）による位置更新も受け付けない（issue #79）', () => {
+    // @ts-expect-error センサーAPIが存在しない環境を再現し、フォールバック操作を有効にする
+    delete window.DeviceMotionEvent
+    mockPointerBounds()
+    mockPondSize(200, 100)
+
+    render(<Poi isTorn />)
+    const pond = screen.getByTestId('pond')
+    const marker = screen.getByTestId('poi-marker')
+
+    fireEvent.pointerDown(pond, { clientX: 100, clientY: 25 })
+
+    expect(marker.style.transform).toContain('translate(0px, 0px)')
+  })
 })
