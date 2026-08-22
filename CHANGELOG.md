@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/uchi-stock/kingyo/compare/v1.19.2...v1.20.0) (2026-08-22)
+
+
+### Features
+
+* 掬う操作の勢いで成否を判定する（優しく掬うと成功、勢いよく掬うと失敗） ([#84](https://github.com/uchi-stock/kingyo/issues/84)) ([9d1821f](https://github.com/uchi-stock/kingyo/commit/9d1821f5281406354ace0e7b86c5a49b8d0f9d8d)), closes [#82](https://github.com/uchi-stock/kingyo/issues/82)
+
 ## [1.19.2](https://github.com/uchi-stock/kingyo/compare/v1.19.1...v1.19.2) (2026-08-22)
 
 
