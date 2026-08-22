@@ -242,9 +242,11 @@ describe('App', () => {
         true,
       );
     });
+    // 失敗専用の効果音（scoop-fail.mp3）は成功時には鳴らない（issue #68）
+    expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('scoop-fail'))).toBe(false);
   });
 
-  it('掬いに失敗すると、捕獲成功専用の効果音（catch-success.mp3）は再生されない（issue #66）', async () => {
+  it('掬いに失敗すると、失敗専用の効果音（scoop-fail.mp3）が再生され、捕獲成功専用の効果音（catch-success.mp3）は再生されない（issue #66, #68）', async () => {
     setUpMatchingPondAndViewport();
 
     const play = vi.fn().mockResolvedValue(undefined);
@@ -267,7 +269,7 @@ describe('App', () => {
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
 
     await waitFor(() => {
-      expect(screen.getByTestId('pond')).toBeInTheDocument();
+      expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('scoop-fail'))).toBe(true);
     });
     expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('catch-success'))).toBe(
       false,
