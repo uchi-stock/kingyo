@@ -1,3 +1,10 @@
+## [1.6.3](https://github.com/uchi-stock/kingyo/compare/v1.6.2...v1.6.3) (2026-08-22)
+
+
+### Bug Fixes
+
+* ポイの感度・滑らかさ・マーカーサイズを実機フィードバックに基づき調整する ([#37](https://github.com/uchi-stock/kingyo/issues/37)) ([25a8998](https://github.com/uchi-stock/kingyo/commit/25a899863d479d86f6c4889af2dc00049f5be8de))
+
 ## [1.6.2](https://github.com/uchi-stock/kingyo/compare/v1.6.1...v1.6.2) (2026-08-22)
 
 
