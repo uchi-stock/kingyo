@@ -1,7 +1,9 @@
 const SCOOP_ANGULAR_VELOCITY_THRESHOLD_DEG_PER_SEC = 180 // この角速度を超える素早い傾きの変化を「掬う」フリックとして検出する
-// この角速度を超える「勢いのよい」フリックは、位置に関わらず失敗として扱う（issue #82）。
-// 実機での検証待ちの暫定値であり、実際の操作感に応じて調整する
-const SCOOP_FORCEFUL_ANGULAR_VELOCITY_THRESHOLD_DEG_PER_SEC = 2400
+// この角速度を超える「勢いのよい」フリックは、位置に関わらずポイが破れて失敗として扱う
+// （issue #82, #85）。当初2400度/秒としていたが、実機で思い切り掬っても閾値に届かず
+// 判定されなかったため、大幅に引き下げた。引き続き実機での検証待ちの暫定値であり、
+// 実際の操作感に応じて調整する
+const SCOOP_FORCEFUL_ANGULAR_VELOCITY_THRESHOLD_DEG_PER_SEC = 600
 const SCOOP_COOLDOWN_MS = 500 // 連続検出を防ぐための最小間隔
 const MIN_DT_SECONDS = 0.001 // 0除算や極小dtによる角速度の異常な増幅（ノイズの誤検出）を防ぐ下限
 const ROTATION_SUPPRESSION_THRESHOLD_DEG_PER_SEC = 90 // この角速度を超える回転中は、加速度による位置操作を抑制する
@@ -15,7 +17,7 @@ export function computeAngularVelocityDegPerSec(currentDeg: number, previousDeg:
 }
 
 // 掬う動作の勢い。優しく掬えば'gentle'（位置に応じて成否判定）、勢いよく掬えば
-// 'forceful'（位置に関わらず常に失敗）として扱う（issue #82）
+// 'forceful'（位置に関わらず常にポイが破れて失敗）として扱う（issue #82, #85）
 export type ScoopIntensity = 'gentle' | 'forceful'
 
 export interface ScoopGestureResult {

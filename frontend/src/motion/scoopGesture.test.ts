@@ -64,8 +64,8 @@ describe('detectScoopGesture', () => {
   })
 
   it('検出閾値超〜勢いの閾値以下の角速度では、優しい（gentle）掬いとして検出される（issue #82）', () => {
-    // 検出閾値（180）は超えるが、勢いの閾値（2400）以下
-    const result = detectScoopGesture(800, 0.05, 0)
+    // 検出閾値（180）は超えるが、勢いの閾値（600）以下
+    const result = detectScoopGesture(400, 0.05, 0)
     expect(result.triggered).toBe(true)
     expect(result.intensity).toBe('gentle')
   })
