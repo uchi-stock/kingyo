@@ -47,6 +47,15 @@ function pointerAt(xPercent: number, yPercent: number): { clientX: number; clien
   return { clientX: 200 * (xPercent / 100), clientY: 100 * (yPercent / 100) };
 }
 
+// GoldfishSchoolの`translate(XXvw, YYvh) ...`から数値部分を取り出す（issue #53の移動量検証用）
+function parseTranslateVwVh(transform: string): { xVw: number; yVh: number } {
+  const match = transform.match(/translate\(([-\d.]+)vw, ([-\d.]+)vh\)/);
+  if (!match) {
+    throw new Error(`unexpected transform: ${transform}`);
+  }
+  return { xVw: Number.parseFloat(match[1]), yVh: Number.parseFloat(match[2]) };
+}
+
 describe('App', () => {
   afterEach(() => {
     window.DeviceMotionEvent = originalDeviceMotionEvent;
@@ -165,6 +174,44 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT - 1);
     });
+  });
+
+  it('掬いに失敗すると、範囲内の最も近い金魚がポイから離れる方向へ加速して逃げる（issue #53）', async () => {
+    setUpMatchingPondAndViewport();
+
+    let now = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    render(<App />);
+    const pond = screen.getByTestId('pond');
+
+    // 1匹目の金魚（id=0）から水平に15離れた位置
+    // （捕獲半径10の外側・逃走対象半径20の内側で、他のどの金魚からも逃走対象半径より
+    // 遠いため、id=0だけが逃走対象になる）にポイを合わせる
+    const fish0 = goldfishInitialPosition(0);
+    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent - 15, fish0.yPercent));
+
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
+
+    // 捕獲は起きない（距離15は捕獲半径10の外側）
+    await waitFor(() => {
+      expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
+    });
+    const beforeTransform = screen.getAllByTestId('goldfish')[0].style.transform;
+    const before = parseTranslateVwVh(beforeTransform);
+
+    // 逃走中は通常速度の3倍（15%/秒）で泳ぐため、0.2秒でも通常（最大1%）を大きく上回る
+    // 距離（最大3%）を移動する
+    now += 200;
+    await waitFor(() => {
+      expect(screen.getAllByTestId('goldfish')[0].style.transform).not.toBe(beforeTransform);
+    });
+    const after = parseTranslateVwVh(screen.getAllByTestId('goldfish')[0].style.transform);
+    const distance = Math.hypot(after.xVw - before.xVw, after.yVh - before.yVh);
+    expect(distance).toBeGreaterThan(1.5);
   });
 
   it('捕獲半径内だが中心（半径4）の外側で捕獲した場合は、ポイは破れない（issue #45）', async () => {

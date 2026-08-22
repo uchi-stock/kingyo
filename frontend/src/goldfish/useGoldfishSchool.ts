@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { findCatchableGoldfish, type CatchResult, type ViewportPosition } from './catchGoldfish'
-import { createInitialGoldfishState, stepGoldfish, type GoldfishState } from './goldfishSwim'
+import { findNearestGoldfishToFlee } from './fleeGoldfish'
+import { createInitialGoldfishState, startFleeing, stepGoldfish, type GoldfishState } from './goldfishSwim'
 
 const CATCH_ANIMATION_DURATION_MS = 450 // 捕獲後、拡大しながらフェードアウトする演出の表示時間
 
@@ -33,6 +34,7 @@ function toPoses(entities: GoldfishEntity[]): GoldfishPose[] {
 export interface UseGoldfishSchoolResult {
   goldfish: GoldfishPose[]
   catchNearestGoldfish: (poiPosition: ViewportPosition) => CatchResult | null
+  startFleeingNearestGoldfish: (poiPosition: ViewportPosition) => void
 }
 
 // requestAnimationFrameでstepGoldfish（純粋関数）を毎フレーム評価し、金魚の群れの位置を更新する。
@@ -99,5 +101,28 @@ export function useGoldfishSchool(count: number): UseGoldfishSchoolResult {
     return result
   }, [])
 
-  return { goldfish, catchNearestGoldfish }
+  // 掬い損ねた際、ポイの位置から一定範囲内にいる最も近い金魚を、ポイから遠ざかる方向へ
+  // 高速で逃走させる（issue #53）。catchNearestGoldfishと同様、常に最新のentitiesRefを
+  // 参照する安定した関数参照として公開する
+  const startFleeingNearestGoldfish = useCallback((poiPosition: ViewportPosition) => {
+    const targetId = findNearestGoldfishToFlee(
+      poiPosition,
+      // 捕獲アニメーション中の金魚は既にいなくなっているため対象にしない
+      entitiesRef.current
+        .filter((entity) => entity.caughtAt === null)
+        .map((entity) => ({ id: entity.id, ...entity.state })),
+    )
+    if (targetId === null) {
+      return
+    }
+    const nextEntities = entitiesRef.current.map((entity) =>
+      entity.id === targetId
+        ? { ...entity, state: startFleeing(entity.state, { xPercent: poiPosition.xVw, yPercent: poiPosition.yVh }) }
+        : entity,
+    )
+    entitiesRef.current = nextEntities
+    setGoldfish(toPoses(nextEntities))
+  }, [])
+
+  return { goldfish, catchNearestGoldfish, startFleeingNearestGoldfish }
 }

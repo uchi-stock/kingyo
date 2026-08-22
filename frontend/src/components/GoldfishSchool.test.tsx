@@ -11,6 +11,7 @@ function createPoses(count: number): GoldfishPose[] {
     headingDeg: 0,
     displayHeadingDeg: 0,
     turnCountdownMs: 5000,
+    fleeCountdownMs: 0,
     isCaught: false,
   }))
 }
