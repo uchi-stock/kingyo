@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/uchi-stock/kingyo/compare/v1.8.0...v1.9.0) (2026-08-22)
+
+
+### Features
+
+* ポイの中心で金魚をすくうと破れる演出を追加する ([#47](https://github.com/uchi-stock/kingyo/issues/47)) ([d675968](https://github.com/uchi-stock/kingyo/commit/d675968d5794a37b886ddd5981506d53ae35b809))
+
 # [1.8.0](https://github.com/uchi-stock/kingyo/compare/v1.7.1...v1.8.0) (2026-08-22)
 
 
