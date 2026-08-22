@@ -1,3 +1,10 @@
+# [1.24.0](https://github.com/uchi-stock/kingyo/compare/v1.23.0...v1.24.0) (2026-08-22)
+
+
+### Features
+
+* ゲームオーバー後にリトライできるボタンを追加する ([#94](https://github.com/uchi-stock/kingyo/issues/94)) ([e169b05](https://github.com/uchi-stock/kingyo/commit/e169b05df76d0da47e89368a2347d331e3c2ca41)), closes [#93](https://github.com/uchi-stock/kingyo/issues/93)
+
 # [1.23.0](https://github.com/uchi-stock/kingyo/compare/v1.22.0...v1.23.0) (2026-08-22)
 
 
