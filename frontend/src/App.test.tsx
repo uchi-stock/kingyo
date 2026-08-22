@@ -214,6 +214,66 @@ describe('App', () => {
     expect(distance).toBeGreaterThan(1.5);
   });
 
+  it('金魚の捕獲に成功すると、専用の効果音（catch-success.mp3）が再生される（issue #66）', async () => {
+    setUpMatchingPondAndViewport();
+
+    const play = vi.fn().mockResolvedValue(undefined);
+    const AudioMock = vi.fn().mockImplementation(function AudioMock(src?: string) {
+      return { play, currentTime: 0, src };
+    });
+    vi.stubGlobal('Audio', AudioMock);
+
+    let now = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    render(<App />);
+
+    const { xPercent, yPercent } = goldfishInitialPosition(0);
+    const pond = screen.getByTestId('pond');
+    fireEvent.pointerDown(pond, pointerAt(xPercent, yPercent));
+
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
+
+    await waitFor(() => {
+      expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('catch-success'))).toBe(
+        true,
+      );
+    });
+  });
+
+  it('掬いに失敗すると、捕獲成功専用の効果音（catch-success.mp3）は再生されない（issue #66）', async () => {
+    setUpMatchingPondAndViewport();
+
+    const play = vi.fn().mockResolvedValue(undefined);
+    const AudioMock = vi.fn().mockImplementation(function AudioMock(src?: string) {
+      return { play, currentTime: 0, src };
+    });
+    vi.stubGlobal('Audio', AudioMock);
+
+    let now = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    render(<App />);
+    const pond = screen.getByTestId('pond');
+    // どの金魚の初期位置からも十分離れた中央付近にポイを置く
+    fireEvent.pointerDown(pond, { clientX: 100, clientY: 50 });
+
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('pond')).toBeInTheDocument();
+    });
+    expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('catch-success'))).toBe(
+      false,
+    );
+  });
+
   it('捕獲半径内だが中心（半径4）の外側で捕獲した場合は、ポイは破れない（issue #45）', async () => {
     setUpMatchingPondAndViewport();
 
