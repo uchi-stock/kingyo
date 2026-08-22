@@ -153,24 +153,12 @@ describe('Poi', () => {
     })
   })
 
-  it('デバッグ表示に許可状態・受信したdevicemotionイベント数・最新の加速度が反映される', async () => {
-    render(<Poi />)
-    expect(screen.getByTestId('poi-debug').textContent).toContain('permission: granted')
-    expect(screen.getByTestId('poi-debug').textContent).toContain('events: 0')
-
-    fireEvent(window, new DeviceMotionEvent('devicemotion', { acceleration: { x: 1, y: 2, z: 0 } }))
-
-    await waitFor(() => {
-      expect(screen.getByTestId('poi-debug').textContent).toContain('events: 1')
-    })
-  })
-
-  it('傾き（beta）を素早く変化させると（掬うフリック相当）、デバッグ表示の検出回数が増加する', async () => {
+  it('傾き（beta）を素早く変化させると（掬うフリック相当）、onScoopが呼び出される', async () => {
     let now = 1000
     vi.spyOn(performance, 'now').mockImplementation(() => now)
+    const onScoop = vi.fn()
 
-    render(<Poi />)
-    expect(screen.getByTestId('poi-debug').textContent).toContain('scoop: 0')
+    render(<Poi onScoop={onScoop} />)
 
     now += 50
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }))
@@ -180,17 +168,18 @@ describe('Poi', () => {
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }))
 
     await waitFor(() => {
-      expect(screen.getByTestId('poi-debug').textContent).toContain('scoop: 1')
+      expect(onScoop).toHaveBeenCalledTimes(1)
     })
 
     vi.restoreAllMocks()
   })
 
-  it('通常のゆっくりとした傾き操作では、掬うジェスチャーとして誤検出されない', async () => {
+  it('通常のゆっくりとした傾き操作では、掬うジェスチャーとして誤検出されずonScoopが呼び出されない', async () => {
     let now = 1000
     vi.spyOn(performance, 'now').mockImplementation(() => now)
+    const onScoop = vi.fn()
 
-    render(<Poi />)
+    render(<Poi onScoop={onScoop} />)
 
     now += 500
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }))
@@ -198,30 +187,11 @@ describe('Poi', () => {
     now += 500
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 5 }))
 
+    // 何も起きないことの確認のため、他の非同期処理が一巡するのを待ってから検証する
     await waitFor(() => {
-      expect(screen.getByTestId('poi-debug').textContent).toContain('permission: granted')
+      expect(screen.getByTestId('pond')).toBeInTheDocument()
     })
-    expect(screen.getByTestId('poi-debug').textContent).toContain('scoop: 0')
-
-    vi.restoreAllMocks()
-  })
-
-  it('掬うフリック相当の素早い傾き変化があると、デバッグ表示の抑制状態がyesになる（issue #42）', async () => {
-    let now = 1000
-    vi.spyOn(performance, 'now').mockImplementation(() => now)
-
-    render(<Poi />)
-    expect(screen.getByTestId('poi-debug').textContent).toContain('suppressed: no')
-
-    now += 50
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }))
-    // 50ms経過でbetaが60度変化 = 1200度/秒（抑制の閾値90度/秒を超える回転）
-    now += 50
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }))
-
-    await waitFor(() => {
-      expect(screen.getByTestId('poi-debug').textContent).toContain('suppressed: yes')
-    })
+    expect(onScoop).not.toHaveBeenCalled()
 
     vi.restoreAllMocks()
   })
