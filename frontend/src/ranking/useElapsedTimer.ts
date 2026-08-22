@@ -9,6 +9,8 @@ export interface UseElapsedTimerResult {
   start: () => void
   // ポイが破れた瞬間に呼ぶ想定。停止時点の経過時間（ミリ秒）を返す
   stop: () => number
+  // 経過時間を0へ戻し未計測状態にする。リトライ時に呼ぶ想定（issue #93）
+  reset: () => void
 }
 
 // 最初の掬うジェスチャーからポイが破れるまでの経過時間を計測するタイマー。
@@ -64,5 +66,16 @@ export function useElapsedTimer(): UseElapsedTimerResult {
     return finalElapsedMs
   }, [])
 
-  return { elapsedMs, isRunning, start, stop }
+  const reset = useCallback(() => {
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+    startTimeRef.current = null
+    elapsedMsRef.current = 0
+    setIsRunning(false)
+    setElapsedMs(0)
+  }, [])
+
+  return { elapsedMs, isRunning, start, stop, reset }
 }

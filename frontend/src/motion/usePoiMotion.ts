@@ -88,7 +88,6 @@ export function usePoiMotion(isTorn = false): UsePoiMotionResult {
     let previousBetaDeg: number | null = null
     let previousTime = performance.now()
     let cooldownMs = 0
-    let scoopCountSoFar = 0
 
     const handleOrientation = (event: DeviceOrientationEvent) => {
       // ポイが破れた後は、角度更新・掬うジェスチャー検出のいずれも行わず、
@@ -110,8 +109,13 @@ export function usePoiMotion(isTorn = false): UsePoiMotionResult {
         const scoopResult = detectScoopGesture(angularVelocityDegPerSec, dtSeconds, cooldownMs)
         cooldownMs = scoopResult.cooldownMs
         if (scoopResult.triggered) {
-          scoopCountSoFar += 1
-          setScoopCount(scoopCountSoFar)
+          // 関数形の更新式を使う。isTorn変化に伴いこのeffectが再購読されても
+          // （issue #93: リトライ後の再購読）、直前のReact state（前回の破れまでの
+          // scoopCount）を正しく引き継いで増分できる。ローカル変数でカウントし直すと、
+          // 再購読直後の値が直前のstateと偶然一致した際にReactが更新を素通りし
+          // （Object.is比較で同値のためスキップ）、以降ずっとPoi側が変化を検知できなく
+          // なる不具合があった
+          setScoopCount((previous) => previous + 1)
           setLastScoopIntensity(scoopResult.intensity)
         }
 

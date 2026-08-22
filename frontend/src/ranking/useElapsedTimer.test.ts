@@ -84,4 +84,40 @@ describe('useElapsedTimer', () => {
     })
     expect(stoppedAt).toBe(0)
   })
+
+  it('reset()で経過時間が0・未計測状態に戻り、以降advanceしても増えない（issue #93）', () => {
+    const { result } = renderHook(() => useElapsedTimer())
+
+    act(() => {
+      result.current.start()
+    })
+    advance(400)
+
+    act(() => {
+      result.current.reset()
+    })
+    expect(result.current.elapsedMs).toBe(0)
+    expect(result.current.isRunning).toBe(false)
+
+    advance(500)
+    expect(result.current.elapsedMs).toBe(0)
+  })
+
+  it('reset()後にstart()すると、その時点から改めて計測できる（issue #93）', () => {
+    const { result } = renderHook(() => useElapsedTimer())
+
+    act(() => {
+      result.current.start()
+    })
+    advance(400)
+    act(() => {
+      result.current.reset()
+    })
+
+    act(() => {
+      result.current.start()
+    })
+    advance(150)
+    expect(result.current.elapsedMs).toBeCloseTo(150, 0)
+  })
 })

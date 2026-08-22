@@ -35,6 +35,8 @@ export interface UseGoldfishSchoolResult {
   goldfish: GoldfishPose[]
   catchNearestGoldfish: (poiPosition: ViewportPosition) => CatchResult | null
   startFleeingNearestGoldfish: (poiPosition: ViewportPosition) => void
+  // 金魚の状態を初期配置へ戻す。リトライ時に呼ぶ想定（issue #93）
+  resetGoldfish: () => void
 }
 
 // requestAnimationFrameでstepGoldfish（純粋関数）を毎フレーム評価し、金魚の群れの位置を更新する。
@@ -124,5 +126,13 @@ export function useGoldfishSchool(count: number): UseGoldfishSchoolResult {
     setGoldfish(toPoses(nextEntities))
   }, [])
 
-  return { goldfish, catchNearestGoldfish, startFleeingNearestGoldfish }
+  // リトライ時に金魚を初期配置へ戻す（issue #93）。catchNearestGoldfish等と同様、
+  // 常に最新のentitiesRefを参照する安定した関数参照として公開する
+  const resetGoldfish = useCallback(() => {
+    const nextEntities = createEntities(count)
+    entitiesRef.current = nextEntities
+    setGoldfish(toPoses(nextEntities))
+  }, [count])
+
+  return { goldfish, catchNearestGoldfish, startFleeingNearestGoldfish, resetGoldfish }
 }
