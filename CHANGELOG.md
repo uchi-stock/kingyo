@@ -1,3 +1,10 @@
+# [1.25.0](https://github.com/uchi-stock/kingyo/compare/v1.24.0...v1.25.0) (2026-08-22)
+
+
+### Features
+
+* バージョン表記をアプリ名の脇にコンパクトに表示する ([#96](https://github.com/uchi-stock/kingyo/issues/96)) ([ccbb5f4](https://github.com/uchi-stock/kingyo/commit/ccbb5f421db42e6b7d577cbc8324e8b89929a98b)), closes [#95](https://github.com/uchi-stock/kingyo/issues/95)
+
 # [1.24.0](https://github.com/uchi-stock/kingyo/compare/v1.23.0...v1.24.0) (2026-08-22)
 
 
