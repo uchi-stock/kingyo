@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/uchi-stock/kingyo/compare/v1.18.0...v1.19.0) (2026-08-22)
+
+
+### Features
+
+* ポイが破れたらゲームオーバー表現として操作不能にする ([#80](https://github.com/uchi-stock/kingyo/issues/80)) ([d85f1ac](https://github.com/uchi-stock/kingyo/commit/d85f1ac738e13bcf2772742c12e210382aa6e8be)), closes [#79](https://github.com/uchi-stock/kingyo/issues/79)
+
 # [1.18.0](https://github.com/uchi-stock/kingyo/compare/v1.17.1...v1.18.0) (2026-08-22)
 
 
