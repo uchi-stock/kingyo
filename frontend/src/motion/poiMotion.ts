@@ -46,10 +46,23 @@ export function removeGravity(
   }
 }
 
-const RATE_SENSITIVITY = 30 // m/s^2 を %/s の移動速度へ変換する係数（速度状態を持たない直接レート制御）
+const RATE_SENSITIVITY = 45 // m/s^2 を %/s の移動速度へ変換する係数（速度状態を持たない直接レート制御）
 const RECENTER_DECAY_PER_SEC = 0.5 // 1秒あたりに中心からのズレがこの割合まで減衰する（残留バイアスによる一方向ドリフトの抑制）
 const MAX_DT_SECONDS = 0.1 // タブのバックグラウンド復帰等での大きなdtによる位置の飛びを防ぐ
 const ACCEL_DEADZONE = 0.3 // m/s^2。静止時の残留ノイズ・微小バイアスを無視する閾値
+const ACCEL_SMOOTHING_ALPHA = 0.6 // 加速度ノイズの平滑化に使うEMAの追従係数（大きいほど滑らかだが追従が遅れる）
+
+// 加速度センサーの生値に含まれる高周波ノイズをEMA（指数移動平均）で平滑化する。
+// issue #34で位置側の速度・運動量を廃したことで、それまで速度の減衰が担っていた
+// ノイズの平滑化効果も失われ、生の加速度が毎フレームそのまま位置に反映されて
+// ポイの動きがガクガクして見える問題が起きた。位置側に運動量を戻すとドリフトが
+// 再発するため、代わりに入力（加速度）側をここで滑らかにする（issue #36）。
+export function smoothAcceleration(raw: Acceleration2D, previousSmoothed: Acceleration2D): Acceleration2D {
+  return {
+    x: ACCEL_SMOOTHING_ALPHA * previousSmoothed.x + (1 - ACCEL_SMOOTHING_ALPHA) * raw.x,
+    y: ACCEL_SMOOTHING_ALPHA * previousSmoothed.y + (1 - ACCEL_SMOOTHING_ALPHA) * raw.y,
+  }
+}
 
 // 閾値未満の加速度成分は0として扱う。実機のデバッグ表示で静止時にも0.2〜0.3m/s^2程度の
 // 残留値が観測されており、これをそのまま移動に反映すると微小なドリフトが蓄積してしまうため（issue #32）

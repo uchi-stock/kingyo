@@ -3,6 +3,7 @@ import {
   CENTER_POI_MOTION_STATE,
   orientationToAngleDeg,
   removeGravity,
+  smoothAcceleration,
   stepPoiMotion,
   type Acceleration2D,
   type PoiMotionState,
@@ -56,6 +57,7 @@ export function usePoiMotion(): UsePoiMotionResult {
   const [motionState, setMotionState] = useState<PoiMotionState>(CENTER_POI_MOTION_STATE)
   const [angleDeg, setAngleDeg] = useState(0)
   const latestAccelerationRef = useRef({ x: 0, y: 0 })
+  const smoothedAccelerationRef = useRef<Acceleration2D>({ x: 0, y: 0 })
   const gravityEstimateRef = useRef<Acceleration2D>({ x: 0, y: 0 })
   const motionEventCountRef = useRef(0)
   const [debug, setDebug] = useState<PoiDebugInfo>({ motionEventCount: 0, lastAcceleration: { x: 0, y: 0 } })
@@ -103,7 +105,12 @@ export function usePoiMotion(): UsePoiMotionResult {
       const now = performance.now()
       const dtSeconds = (now - lastTime) / 1000
       lastTime = now
-      setMotionState((state) => stepPoiMotion(state, latestAccelerationRef.current, dtSeconds))
+      // 加速度センサーの生値をそのまま位置制御に使うと、センサーノイズが毎フレーム
+      // そのまま反映されてポイの動きがガクガクして見えるため、EMAで平滑化してから使う
+      // （issue #36）。デバッグ表示（debug.lastAcceleration）はセンサーの生値の受信状況を
+      // 確認する目的のため、平滑化前の値のまま残す。
+      smoothedAccelerationRef.current = smoothAcceleration(latestAccelerationRef.current, smoothedAccelerationRef.current)
+      setMotionState((state) => stepPoiMotion(state, smoothedAccelerationRef.current, dtSeconds))
       // devicemotionイベントが実際に届いているかを画面上で確認できるようにする
       // デバッグ用の状態（issue #14: 実機で位置が中央から全く動かない事象の原因切り分け）
       setDebug({ motionEventCount: motionEventCountRef.current, lastAcceleration: latestAccelerationRef.current })
