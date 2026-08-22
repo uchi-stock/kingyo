@@ -1,11 +1,28 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePoiMotion } from '../motion/usePoiMotion'
 
 export function Poi() {
   const { permission, pose, debug, requestPermission, setPositionFromPointer } = usePoiMotion()
   const pondRef = useRef<HTMLDivElement>(null)
+  const [pondSize, setPondSize] = useState({ width: 0, height: 0 })
   const showManualControl = permission === 'denied' || permission === 'unsupported'
+
+  // ポイの位置をtransformのpx移動量へ変換するため、pondの実サイズを測定する。
+  // left/topではなくtransformで動かすことで、毎フレームの更新がレイアウト再計算（reflow）を
+  // 伴わずGPU合成のみで完結するようにする（issue #14: 実機でセンサー値・状態更新は
+  // 正常なのにポイが視覚的に動かなかった原因）
+  useEffect(() => {
+    const pond = pondRef.current
+    if (!pond) {
+      return
+    }
+    const updateSize = () => setPondSize({ width: pond.clientWidth, height: pond.clientHeight })
+    updateSize()
+    const observer = new ResizeObserver(updateSize)
+    observer.observe(pond)
+    return () => observer.disconnect()
+  }, [])
 
   const handlePointerInput = (event: ReactPointerEvent<HTMLDivElement>) => {
     const pond = pondRef.current
@@ -18,6 +35,9 @@ export function Poi() {
     setPositionFromPointer(xPercent, yPercent)
   }
 
+  const offsetXPx = ((pose.xPercent - 50) / 100) * pondSize.width
+  const offsetYPx = ((pose.yPercent - 50) / 100) * pondSize.height
+
   return (
     <div
       ref={pondRef}
@@ -29,13 +49,11 @@ export function Poi() {
     >
       <div
         data-testid="poi-marker"
-        className="position-absolute rounded-circle border border-4 border-white"
+        className="position-absolute top-50 start-50 rounded-circle border border-4 border-white"
         style={{
-          left: `${pose.xPercent}%`,
-          top: `${pose.yPercent}%`,
           width: '3rem',
           height: '3rem',
-          transform: `translate(-50%, -50%) rotate(${pose.angleDeg}deg)`,
+          transform: `translate(-50%, -50%) translate(${offsetXPx}px, ${offsetYPx}px) rotate(${pose.angleDeg}deg)`,
         }}
         aria-hidden="true"
       />

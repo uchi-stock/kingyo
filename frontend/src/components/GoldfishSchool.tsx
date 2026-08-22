@@ -20,14 +20,14 @@ export function GoldfishSchool() {
           key={index}
           src={GOLDFISH_IMAGES[index]}
           alt=""
-          className="position-absolute"
+          className="position-absolute top-0 start-0"
           data-testid="goldfish"
           style={{
-            left: `${pose.xPercent}%`,
-            top: `${pose.yPercent}%`,
             width: '3.5rem',
-            transform: `translate(-50%, -50%) scaleX(${pose.facingLeft ? -1 : 1})`,
-            transition: 'left 0.1s linear, top 0.1s linear',
+            // left/topではなくtransformで動かす。この要素はposition-fixedの
+            // ビューポート全体に対する子要素のため、vw/vhをtranslateへ直接使うことで
+            // レイアウト再計算（reflow）を伴わないGPU合成のみの更新にできる（issue #14）
+            transform: `translate(${pose.xPercent}vw, ${pose.yPercent}vh) translate(-50%, -50%) scaleX(${pose.facingLeft ? -1 : 1})`,
           }}
         />
       ))}

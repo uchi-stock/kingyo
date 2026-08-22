@@ -12,4 +12,14 @@ describe('GoldfishSchool', () => {
     render(<GoldfishSchool />)
     expect(screen.getByTestId('goldfish-school')).toHaveStyle({ pointerEvents: 'none' })
   })
+
+  it('位置はleft/topではなくtransform（vw/vh）で表現される（レイアウト再計算を避けるため）', () => {
+    render(<GoldfishSchool />)
+    const fish = screen.getAllByTestId('goldfish')
+    for (const el of fish) {
+      expect(el.style.left).toBe('')
+      expect(el.style.top).toBe('')
+      expect(el.style.transform).toMatch(/translate\(-?\d+(\.\d+)?vw, -?\d+(\.\d+)?vh\)/)
+    }
+  })
 })

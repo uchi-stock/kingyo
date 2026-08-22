@@ -16,6 +16,13 @@ function mockPointerBounds() {
   })
 }
 
+// pondのtransform計算（offsetXPx/offsetYPx）を検証するため、pondの実測サイズをモックする。
+// Poi内のuseEffectがrender()時点で同期的に実行されるよう、render()より前に呼び出すこと
+function mockPondSize(width: number, height: number) {
+  Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: width })
+  Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, value: height })
+}
+
 // jsdom既定のDeviceMotionEventスタブを退避しておき、各テスト後に復元する。
 // delete window.DeviceMotionEventのみだと、そのテストファイル内の以降のテストで
 // 既定スタブ（requestPermissionなし＝granted扱い）に依存するケースが「unsupported」に
@@ -31,6 +38,7 @@ describe('Poi', () => {
 
   it('requestPermissionを持たない環境（Android等）では、許可ボタンなしでモーションセンサーの値をポイの位置に反映する', async () => {
     // jsdomはDeviceMotionEventをrequestPermissionなしのスタブとして持つため、デフォルトでgranted扱いになる
+    mockPondSize(200, 100)
     render(<Poi />)
     expect(screen.queryByRole('button', { name: 'センサーを有効にする' })).not.toBeInTheDocument()
     expect(
@@ -44,11 +52,12 @@ describe('Poi', () => {
 
     const marker = screen.getByTestId('poi-marker')
     await waitFor(() => {
-      expect(marker.style.left).not.toBe('50%')
+      expect(marker.style.transform).not.toContain('translate(0px, 0px)')
     })
   })
 
   it('端末の傾き（deviceorientation）はポイの位置ではなく角度にのみ反映される', () => {
+    mockPondSize(200, 100)
     render(<Poi />)
     const marker = screen.getByTestId('poi-marker')
 
@@ -57,8 +66,8 @@ describe('Poi', () => {
       new DeviceOrientationEvent('deviceorientation', { beta: 45, gamma: 30 }),
     )
 
-    expect(marker.style.left).toBe('50%')
-    expect(marker.style.top).toBe('50%')
+    // 位置（pond中央からのpxオフセット）は変化しない
+    expect(marker.style.transform).toContain('translate(0px, 0px)')
     expect(marker.style.transform).toContain('rotate(30deg)')
   })
 
@@ -160,13 +169,16 @@ describe('Poi', () => {
     // @ts-expect-error センサーAPIが存在しない環境を再現し、フォールバック操作を有効にする
     delete window.DeviceMotionEvent
     mockPointerBounds()
+    mockPondSize(200, 100)
 
     render(<Poi />)
     const pond = screen.getByTestId('pond')
     const marker = screen.getByTestId('poi-marker')
 
+    // clientX:100, clientY:25 は pond（200x100）上で xPercent:50, yPercent:25 に相当する
     fireEvent.pointerDown(pond, { clientX: 100, clientY: 25 })
 
-    expect(marker).toHaveStyle({ left: '50%', top: '25%' })
+    // xPercent:50 → pond中央からのオフセット0px、yPercent:25 → 中央から-25%分（-25px）上
+    expect(marker.style.transform).toContain('translate(0px, -25px)')
   })
 })
