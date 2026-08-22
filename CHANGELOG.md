@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/uchi-stock/kingyo/compare/v1.6.4...v1.7.0) (2026-08-22)
+
+
+### Features
+
+* 傾きの素早い動き（フリック）を「掬う」ジェスチャーとして検出する ([#41](https://github.com/uchi-stock/kingyo/issues/41)) ([252495c](https://github.com/uchi-stock/kingyo/commit/252495cf87ffc8ed3d872935df6cca8def955951))
+
 ## [1.6.4](https://github.com/uchi-stock/kingyo/compare/v1.6.3...v1.6.4) (2026-08-22)
 
 
