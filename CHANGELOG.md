@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/uchi-stock/kingyo/compare/v1.12.0...v1.13.0) (2026-08-22)
+
+
+### Features
+
+* 掬うのに失敗した時、近くの金魚がスピードを上げて逃げるようにする ([#61](https://github.com/uchi-stock/kingyo/issues/61)) ([5e7c938](https://github.com/uchi-stock/kingyo/commit/5e7c9383c99f9f4508295c6b132a79374e96292c))
+
 # [1.12.0](https://github.com/uchi-stock/kingyo/compare/v1.11.1...v1.12.0) (2026-08-22)
 
 
