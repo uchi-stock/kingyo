@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/uchi-stock/kingyo/compare/v1.10.0...v1.11.0) (2026-08-22)
+
+
+### Features
+
+* 金魚を捕獲した際、拡大しながらフェードアウトする演出を追加する ([#54](https://github.com/uchi-stock/kingyo/issues/54)) ([0545918](https://github.com/uchi-stock/kingyo/commit/0545918a0e005a8467b64e3b08f78a575756aacd))
+
 # [1.10.0](https://github.com/uchi-stock/kingyo/compare/v1.9.0...v1.10.0) (2026-08-22)
 
 
