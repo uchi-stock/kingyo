@@ -186,9 +186,9 @@ describe('Poi', () => {
 
     now += 50
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }))
-    // 50ms経過でbetaが60度変化 = 1200度/秒（検出閾値180は超えるが勢いの閾値2400は超えない）
+    // 50ms経過でbetaが20度変化 = 400度/秒（検出閾値180は超えるが勢いの閾値600は超えない）
     now += 50
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }))
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }))
 
     await waitFor(() => {
       expect(onScoop).toHaveBeenCalledTimes(1)
@@ -207,7 +207,7 @@ describe('Poi', () => {
 
     now += 50
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }))
-    // 50ms経過でbetaが300度変化 = 6000度/秒（勢いの閾値2400度/秒を超える）
+    // 50ms経過でbetaが300度変化 = 6000度/秒（勢いの閾値600度/秒を超える）
     now += 50
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 300 }))
 

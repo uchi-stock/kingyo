@@ -25,9 +25,21 @@ function App() {
 
   const handleScoop = useCallback(
     (poiPosition: ViewportPosition, intensity: ScoopIntensity) => {
-      // ポイが既に破れている場合、または勢いよく掬った場合は、位置に関わらず
-      // 捕獲を試みず常に「失敗」として扱う（issue #82）
-      const result = isTorn || intensity === 'forceful' ? null : catchNearestGoldfish(poiPosition);
+      // ポイが既に破れている場合は捕獲を試みない（usePoiMotion側で既にこの状態では
+      // 掬うジェスチャー自体を検出しないが、念のため保持する。issue #79）
+      if (isTorn) {
+        return;
+      }
+      if (intensity === 'forceful') {
+        // 勢いよく掬うと、捕獲対象の有無・位置に関わらずポイが破れて失敗する
+        // （issue #82, #85: 実際の金魚すくいで紙を強く扱うと破れる感覚に合わせる）
+        playScoopFailSound();
+        playPoiTearSound();
+        startFleeingNearestGoldfish(poiPosition);
+        setIsTorn(true);
+        return;
+      }
+      const result = catchNearestGoldfish(poiPosition);
       if (result === null) {
         // 捕獲できなかった場合、専用の効果音を鳴らし、驚いた近くの金魚が逃げる（issue #53, #68）
         playScoopFailSound();

@@ -123,9 +123,9 @@ describe('App', () => {
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
-    // 50ms経過でbetaが60度変化 = 1200度/秒（掬うジェスチャーの閾値180度/秒を超える）
+    // 50ms経過でbetaが20度変化 = 400度/秒（検出閾値180は超えるが勢いの閾値600は超えない「優しい」掬い）
     now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
 
     // 捕獲直後はフェードアウト演出中のため、まだDOMに残っている（不透明度0・拡大表示）
     await waitFor(() => {
@@ -154,8 +154,9 @@ describe('App', () => {
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    // 50ms経過でbetaが20度変化 = 400度/秒（勢いの閾値600は超えない「優しい」掬い）
     now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
 
     // 掬うジェスチャー自体は検出されるが、近くに金魚がいないため捕獲は起きない。
     // 非同期処理が一巡するのを待ってから、金魚の数が変化していないことを確認する
@@ -182,8 +183,9 @@ describe('App', () => {
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    // 50ms経過でbetaが20度変化 = 400度/秒（勢いの閾値600は超えない「優しい」掬い）
     now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
 
     await waitFor(() => {
       expect(screen.getByTestId('poi-marker').tagName).toBe('IMG');
@@ -226,8 +228,9 @@ describe('App', () => {
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    // 50ms経過でbetaが20度変化 = 400度/秒（勢いの閾値600は超えない「優しい」掬い）
     now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
 
     // 捕獲は起きない（距離15は捕獲半径10の外側）
     await waitFor(() => {
@@ -247,7 +250,7 @@ describe('App', () => {
     expect(distance).toBeGreaterThan(1.5);
   });
 
-  it('金魚の真上でも、勢いよく掬うと位置に関わらず捕獲に失敗する（issue #82）', async () => {
+  it('金魚の真上でも、勢いよく掬うと位置に関わらずポイが破れて捕獲に失敗する（issue #82, #85）', async () => {
     setUpMatchingPondAndViewport();
     const playCountsBySrc = mockAudioPlayCounts();
 
@@ -255,24 +258,29 @@ describe('App', () => {
     vi.spyOn(performance, 'now').mockImplementation(() => now);
 
     render(<App />);
+    const pond = screen.getByTestId('pond');
+    const marker = screen.getByTestId('poi-marker');
+    expect(marker.tagName).toBe('DIV');
 
     // 1匹目の金魚（id=0）の真上（距離0）にポイを合わせる（優しく掬えば必ず捕獲できる位置）
     const { xPercent, yPercent } = goldfishInitialPosition(0);
-    const pond = screen.getByTestId('pond');
     fireEvent.pointerDown(pond, pointerAt(xPercent, yPercent));
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
-    // 50ms経過でbetaが300度変化 = 6000度/秒（勢いの閾値2400度/秒を超える「勢いのよい」掬い）
+    // 50ms経過でbetaが300度変化 = 6000度/秒（勢いの閾値600度/秒を超える「勢いのよい」掬い）
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 300 }));
 
-    // 位置的には捕獲できるはずだが、勢いがよすぎるため失敗として扱われる
+    // 位置的には捕獲できるはずだが、勢いがよすぎるためポイが破れて失敗として扱われる
     await waitFor(() => {
       expect(playCountFor(playCountsBySrc, 'scoop-fail')).toBeGreaterThan(1);
     });
     expect(playCountFor(playCountsBySrc, 'catch-success')).toBe(1);
+    expect(playCountFor(playCountsBySrc, 'poi-tear')).toBeGreaterThan(1);
     expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
+    expect(screen.getByTestId('poi-marker').tagName).toBe('IMG');
+    expect(screen.getByTestId('poi-marker').getAttribute('src')).toContain('poi-torn');
   });
 
   it('金魚の捕獲に成功すると、専用の効果音（catch-success.mp3）が再生される（issue #66）', async () => {
@@ -290,8 +298,9 @@ describe('App', () => {
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    // 50ms経過でbetaが20度変化 = 400度/秒（勢いの閾値600は超えない「優しい」掬い）
     now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
 
     // 最初のpointerdownによるアンロック分（issue #73）の1回を超えて再生されたことを確認する
     await waitFor(() => {
@@ -315,8 +324,9 @@ describe('App', () => {
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    // 50ms経過でbetaが20度変化 = 400度/秒（勢いの閾値600は超えない「優しい」掬い）
     now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
 
     await waitFor(() => {
       expect(playCountFor(playCountsBySrc, 'scoop-fail')).toBeGreaterThan(1);
@@ -340,8 +350,9 @@ describe('App', () => {
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    // 50ms経過でbetaが20度変化 = 400度/秒（勢いの閾値600は超えない「優しい」掬い）
     now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
 
     await waitFor(() => {
       expect(playCountFor(playCountsBySrc, 'poi-tear')).toBeGreaterThan(1);
@@ -365,8 +376,9 @@ describe('App', () => {
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    // 50ms経過でbetaが20度変化 = 400度/秒（勢いの閾値600は超えない「優しい」掬い）
     now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
 
     await waitFor(() => {
       expect(playCountFor(playCountsBySrc, 'catch-success')).toBeGreaterThan(1);
@@ -389,8 +401,9 @@ describe('App', () => {
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    // 50ms経過でbetaが20度変化 = 400度/秒（勢いの閾値600は超えない「優しい」掬い）
     now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
 
     await waitFor(() => {
       const img = screen.getAllByTestId('goldfish')[0].querySelector('img');
