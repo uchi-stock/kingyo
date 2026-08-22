@@ -1,18 +1,43 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { findCatchableGoldfishId, type ViewportPosition } from './catchGoldfish'
 import { createInitialGoldfishState, stepGoldfish, type GoldfishState } from './goldfishSwim'
 
-function createSeeds(count: number): number[] {
-  return Array.from({ length: count }, (_, index) => (index + 1) / (count + 1))
+export interface GoldfishPose extends GoldfishState {
+  id: number
+}
+
+interface GoldfishEntity {
+  id: number
+  seed: number
+  state: GoldfishState
+}
+
+function createEntities(count: number): GoldfishEntity[] {
+  return Array.from({ length: count }, (_, id) => {
+    const seed = (id + 1) / (count + 1)
+    return { id, seed, state: createInitialGoldfishState(seed) }
+  })
+}
+
+function toPoses(entities: GoldfishEntity[]): GoldfishPose[] {
+  return entities.map((entity) => ({ id: entity.id, ...entity.state }))
+}
+
+export interface UseGoldfishSchoolResult {
+  goldfish: GoldfishPose[]
+  catchNearestGoldfish: (poiPosition: ViewportPosition) => void
 }
 
 // requestAnimationFrameでstepGoldfish（純粋関数）を毎フレーム評価し、金魚の群れの位置を更新する。
 // 位置・進行方向は前フレームの状態に依存するステートフルなシミュレーションのため、
-// statesRefで現在の状態を保持し、フレームごとに直接更新する。
-export function useGoldfishSchool(count: number): GoldfishState[] {
-  const [seeds] = useState(() => createSeeds(count))
-  const [initialStates] = useState(() => seeds.map((seed) => createInitialGoldfishState(seed)))
-  const statesRef = useRef<GoldfishState[]>(initialStates)
-  const [states, setStates] = useState<GoldfishState[]>(initialStates)
+// entitiesRefで現在の状態を保持し、フレームごとに直接更新する。
+//
+// 各金魚には安定したidを持たせ、捕獲による除去後もReactのkeyや画像割り当てが
+// 配列内の位置（index）ではなくidに紐づくようにする（issue #44）。
+export function useGoldfishSchool(count: number): UseGoldfishSchoolResult {
+  const [initialEntities] = useState(() => createEntities(count))
+  const entitiesRef = useRef<GoldfishEntity[]>(initialEntities)
+  const [goldfish, setGoldfish] = useState<GoldfishPose[]>(() => toPoses(initialEntities))
 
   useEffect(() => {
     const startTime = performance.now()
@@ -25,15 +50,34 @@ export function useGoldfishSchool(count: number): GoldfishState[] {
       const elapsedMs = now - startTime
       lastTime = now
 
-      const nextStates = statesRef.current.map((state, index) => stepGoldfish(state, dtSeconds, elapsedMs, seeds[index]))
-      statesRef.current = nextStates
-      setStates(nextStates)
+      const nextEntities = entitiesRef.current.map((entity) => ({
+        ...entity,
+        state: stepGoldfish(entity.state, dtSeconds, elapsedMs, entity.seed),
+      }))
+      entitiesRef.current = nextEntities
+      setGoldfish(toPoses(nextEntities))
       frameId = requestAnimationFrame(tick)
     }
 
     frameId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frameId)
-  }, [seeds])
+  }, [])
 
-  return states
+  // 捕獲判定・除去ロジックはこのフック内に閉じ、常に最新のentitiesRefを参照するため
+  // 依存配列を空にできる。呼び出し側（Poiの掬うジェスチャーコールバック）に安定した
+  // 関数参照を渡すことで、金魚の毎フレーム更新がPoiの不要な再描画を招かないようにする（issue #44）
+  const catchNearestGoldfish = useCallback((poiPosition: ViewportPosition) => {
+    const caughtId = findCatchableGoldfishId(
+      poiPosition,
+      entitiesRef.current.map((entity) => ({ id: entity.id, ...entity.state })),
+    )
+    if (caughtId === null) {
+      return
+    }
+    const nextEntities = entitiesRef.current.filter((entity) => entity.id !== caughtId)
+    entitiesRef.current = nextEntities
+    setGoldfish(toPoses(nextEntities))
+  }, [])
+
+  return { goldfish, catchNearestGoldfish }
 }

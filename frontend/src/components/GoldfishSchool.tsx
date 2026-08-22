@@ -2,23 +2,32 @@ import goldfish1 from '../assets/goldfish/goldfish-1.png'
 import goldfish2 from '../assets/goldfish/goldfish-2.png'
 import goldfish3 from '../assets/goldfish/goldfish-3.png'
 import goldfish4 from '../assets/goldfish/goldfish-4.png'
-import { useGoldfishSchool } from '../goldfish/useGoldfishSchool'
+import type { GoldfishPose } from '../goldfish/useGoldfishSchool'
 
 const GOLDFISH_IMAGES = [goldfish1, goldfish2, goldfish3, goldfish4]
 
-export function GoldfishSchool() {
-  const poses = useGoldfishSchool(GOLDFISH_IMAGES.length)
+export const GOLDFISH_COUNT = GOLDFISH_IMAGES.length
 
+export interface GoldfishSchoolProps {
+  goldfish: GoldfishPose[]
+}
+
+// 金魚の状態（位置・更新）はApp側でuseGoldfishSchoolにより保持し、本コンポーネントは
+// 受け取ったposeを描画するだけの表示専用コンポーネントとする。掬うジェスチャーによる
+// 捕獲判定にはポイ側（App）も金魚の位置情報が必要なため、Appに状態を集約した（issue #44）
+export function GoldfishSchool({ goldfish }: GoldfishSchoolProps) {
   return (
     <div
       className="position-fixed top-0 start-0 w-100 h-100"
       style={{ pointerEvents: 'none' }}
       data-testid="goldfish-school"
     >
-      {poses.map((pose, index) => (
+      {goldfish.map((pose) => (
         <img
-          key={index}
-          src={GOLDFISH_IMAGES[index]}
+          key={pose.id}
+          // 捕獲による除去後も配列内の位置（index）がずれるため、配列の並び順ではなく
+          // 安定したidを基準に画像を割り当てる
+          src={GOLDFISH_IMAGES[pose.id % GOLDFISH_IMAGES.length]}
           alt=""
           className="position-absolute top-0 start-0"
           data-testid="goldfish"
