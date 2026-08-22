@@ -1,3 +1,10 @@
+# [1.22.0](https://github.com/uchi-stock/kingyo/compare/v1.21.0...v1.22.0) (2026-08-22)
+
+
+### Features
+
+* タイム計測（最初のひと掬いから）とランキング機能を追加する ([#90](https://github.com/uchi-stock/kingyo/issues/90)) ([10213d6](https://github.com/uchi-stock/kingyo/commit/10213d6d9072c77a0349a8a5f9eb3896a0b8d3ac)), closes [#89](https://github.com/uchi-stock/kingyo/issues/89)
+
 # [1.21.0](https://github.com/uchi-stock/kingyo/compare/v1.20.1...v1.21.0) (2026-08-22)
 
 
