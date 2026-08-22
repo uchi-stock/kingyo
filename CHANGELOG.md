@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/uchi-stock/kingyo/compare/v1.3.4...v1.4.0) (2026-08-22)
+
+
+### Features
+
+* 金魚の遊泳モデルを前方基準の小さな振れ＋端で転回に変更する ([#24](https://github.com/uchi-stock/kingyo/issues/24)) ([edf16f6](https://github.com/uchi-stock/kingyo/commit/edf16f6bcabba06d5626989bb6cd6cb61a2ac9f4))
+
 ## [1.3.4](https://github.com/uchi-stock/kingyo/compare/v1.3.3...v1.3.4) (2026-08-22)
 
 
