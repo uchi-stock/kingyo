@@ -211,6 +211,22 @@ export function usePoiMotion(): UsePoiMotionResult {
     }
   }, [])
 
+  // センサー許可が必要な環境（iOS Safari等）でも、専用の「有効にする」ボタン操作を
+  // ユーザーに求めず、画面への最初のタップ（既に発生する自然な操作）をそのまま許可
+  // リクエストのトリガーとする。requestPermission()はユーザー操作起点でなければ
+  // 許可ダイアログを出さないブラウザがあるため、ボタンではなく最初のpointerdown
+  // イベント自体がその役割を果たす（issue #14と同様の制約への対応。issue #63）
+  useEffect(() => {
+    if (permission !== 'unknown') {
+      return
+    }
+    const handleFirstPointerDown = () => {
+      void requestPermission()
+    }
+    window.addEventListener('pointerdown', handleFirstPointerDown, { once: true })
+    return () => window.removeEventListener('pointerdown', handleFirstPointerDown)
+  }, [permission, requestPermission])
+
   const setPositionFromPointer = useCallback((xPercent: number, yPercent: number) => {
     const clamp01 = (value: number) => Math.min(Math.max(value, 0), 100)
     setMotionState({ xPercent: clamp01(xPercent), yPercent: clamp01(yPercent) })
