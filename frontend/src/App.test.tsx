@@ -482,4 +482,62 @@ describe('App', () => {
     });
     expect(screen.getByTestId('game-over-message')).toHaveTextContent('ゲームオーバー');
   });
+
+  it('ゲームオーバー前はリトライボタンが表示されない（issue #93）', () => {
+    render(<App />);
+    expect(screen.queryByTestId('retry-button')).not.toBeInTheDocument();
+  });
+
+  it('リトライボタンを押すと、ポイ・タイム・金魚が初期状態に戻り再度プレイでき、ランキングは保持される（issue #93）', async () => {
+    setUpMatchingPondAndViewport();
+
+    let now = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    render(<App />);
+    const pond = screen.getByTestId('pond');
+
+    // 1匹目の金魚（id=0）の真上（距離0）にポイを合わせ、中心での捕獲＝破れを再現する
+    const fish0 = goldfishInitialPosition(0);
+    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent, fish0.yPercent));
+
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('retry-button')).toBeInTheDocument();
+    });
+
+    // 捕獲アニメーション（450ms）が経過し、金魚が1匹減った状態を確認する
+    now += 500;
+    await waitFor(() => {
+      expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT - 1);
+    });
+
+    fireEvent.click(screen.getByTestId('retry-button'));
+
+    // ポイ・タイム・ゲームオーバー表示が初期状態に戻る
+    expect(screen.queryByTestId('game-over-message')).not.toBeInTheDocument();
+    expect(screen.getByTestId('elapsed-timer')).toHaveTextContent('00:00.0');
+    expect(screen.getByTestId('poi-marker').tagName).toBe('DIV');
+    // 金魚も初期匹数に戻る
+    expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
+    // ランキング（過去の記録）はリトライしても消えない
+    expect(screen.getByTestId('ranking-list')).toBeInTheDocument();
+
+    // リトライ後、再度掬うジェスチャーで捕獲できることを確認する。isTornのリセットに伴い
+    // usePoiMotion側の掬うジェスチャー検出も内部状態ごと再購読される（クールダウンも
+    // リセットされる）ため、待機なしですぐに再度フリックできる
+    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent, fish0.yPercent));
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('game-over-message')).toBeInTheDocument();
+    });
+  });
 });

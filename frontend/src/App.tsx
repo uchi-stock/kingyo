@@ -17,7 +17,8 @@ import { useElapsedTimer } from './ranking/useElapsedTimer';
 function App() {
   // 掬うジェスチャー（Poi）と金魚の位置判定を組み合わせて捕獲するため、
   // 金魚の状態をAppで保持し、両コンポーネントへ配線する（issue #44）
-  const { goldfish, catchNearestGoldfish, startFleeingNearestGoldfish } = useGoldfishSchool(GOLDFISH_COUNT);
+  const { goldfish, catchNearestGoldfish, startFleeingNearestGoldfish, resetGoldfish } =
+    useGoldfishSchool(GOLDFISH_COUNT);
   // ポイの中心で金魚を捕獲すると紙が破れ、以降は捕獲できなくなる（issue #45）
   const [isTorn, setIsTorn] = useState(false);
   // 掬うジェスチャーそのものの効果音（issue #48）はPoi.tsx側で鳴らすため、
@@ -27,7 +28,7 @@ function App() {
   const playPoiTearSound = usePlaySound(poiTearSoundUrl);
   // タイムは最初の掬うジェスチャーから計測を開始し、ポイが破れた時点で停止して
   // ランキングへ記録する（issue #89）
-  const { elapsedMs, start: startTimer, stop: stopTimer } = useElapsedTimer();
+  const { elapsedMs, start: startTimer, stop: stopTimer, reset: resetTimer } = useElapsedTimer();
   const [ranking, setRanking] = useState<RankingEntry[]>(() => loadRanking());
 
   const handleScoop = useCallback(
@@ -77,6 +78,14 @@ function App() {
     ],
   );
 
+  // ゲームオーバー後にページ再読み込みなしで再プレイできるようにする（issue #93）。
+  // ランキング（issue #89、過去の記録）はリセットしない
+  const handleRetry = useCallback(() => {
+    resetGoldfish();
+    resetTimer();
+    setIsTorn(false);
+  }, [resetGoldfish, resetTimer]);
+
   return (
     <>
       <CameraBackground />
@@ -87,8 +96,11 @@ function App() {
           {isTorn && (
             // ポイが破れて操作不能になった（issue #79）ことが見た目（マーカー画像の
             // 切り替え）だけでは分かりにくいという指摘を受け、明示的な表示を追加した（issue #91）
-            <div className="alert alert-danger fw-bold text-center py-2 mb-2" role="alert" data-testid="game-over-message">
-              ゲームオーバー
+            <div className="alert alert-danger text-center py-2 mb-2" role="alert" data-testid="game-over-message">
+              <p className="fw-bold mb-2">ゲームオーバー</p>
+              <button type="button" className="btn btn-primary" onClick={handleRetry} data-testid="retry-button">
+                リトライ
+              </button>
             </div>
           )}
           <p className="mb-2 fs-5" data-testid="elapsed-timer">
