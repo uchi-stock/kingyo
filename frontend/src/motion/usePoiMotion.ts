@@ -155,13 +155,7 @@ export function usePoiMotion(): UsePoiMotionResult {
 
   const setPositionFromPointer = useCallback((xPercent: number, yPercent: number) => {
     const clamp01 = (value: number) => Math.min(Math.max(value, 0), 100)
-    setMotionState((state) => ({
-      ...state,
-      xPercent: clamp01(xPercent),
-      yPercent: clamp01(yPercent),
-      velocityXPercentPerSec: 0,
-      velocityYPercentPerSec: 0,
-    }))
+    setMotionState({ xPercent: clamp01(xPercent), yPercent: clamp01(yPercent) })
   }, [])
 
   return {
