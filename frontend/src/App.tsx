@@ -84,6 +84,13 @@ function App() {
       <main className="container py-5 position-relative">
         <div className="bg-white bg-opacity-75 rounded-3 p-3 mb-3">
           <h1 className="fs-2 fw-bold">金魚掬い</h1>
+          {isTorn && (
+            // ポイが破れて操作不能になった（issue #79）ことが見た目（マーカー画像の
+            // 切り替え）だけでは分かりにくいという指摘を受け、明示的な表示を追加した（issue #91）
+            <div className="alert alert-danger fw-bold text-center py-2 mb-2" role="alert" data-testid="game-over-message">
+              ゲームオーバー
+            </div>
+          )}
           <p className="mb-2 fs-5" data-testid="elapsed-timer">
             タイム: {formatElapsedTime(elapsedMs)}
           </p>
