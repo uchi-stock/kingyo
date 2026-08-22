@@ -1,3 +1,10 @@
+# [1.17.0](https://github.com/uchi-stock/kingyo/compare/v1.16.0...v1.17.0) (2026-08-22)
+
+
+### Features
+
+* ポイが破れた時専用の効果音を再生する ([#71](https://github.com/uchi-stock/kingyo/issues/71)) ([612221c](https://github.com/uchi-stock/kingyo/commit/612221c7981d969b6b867fbf9b497a87cf8bc13b)), closes [#66](https://github.com/uchi-stock/kingyo/issues/66) [#69](https://github.com/uchi-stock/kingyo/issues/69)
+
 # [1.16.0](https://github.com/uchi-stock/kingyo/compare/v1.15.0...v1.16.0) (2026-08-22)
 
 
