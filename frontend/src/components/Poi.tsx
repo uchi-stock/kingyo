@@ -1,12 +1,18 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
+import type { ViewportPosition } from '../goldfish/catchGoldfish'
 import { usePoiMotion } from '../motion/usePoiMotion'
 
-export function Poi() {
+export interface PoiProps {
+  onScoop?: (position: ViewportPosition) => void
+}
+
+function PoiComponent({ onScoop }: PoiProps) {
   const { permission, pose, debug, requestPermission, setPositionFromPointer } = usePoiMotion()
   const pondRef = useRef<HTMLDivElement>(null)
   const [pondSize, setPondSize] = useState({ width: 0, height: 0 })
   const showManualControl = permission === 'denied' || permission === 'unsupported'
+  const previousScoopCountRef = useRef(debug.scoopCount)
 
   // ポイの位置をtransformのpx移動量へ変換するため、pondの実サイズを測定する。
   // left/topではなくtransformで動かすことで、毎フレームの更新がレイアウト再計算（reflow）を
@@ -37,6 +43,28 @@ export function Poi() {
 
   const offsetXPx = ((pose.xPercent - 50) / 100) * pondSize.width
   const offsetYPx = ((pose.yPercent - 50) / 100) * pondSize.height
+
+  // 掬うジェスチャーが検出された瞬間のポイの位置を、金魚の捕獲判定へ渡す（issue #44）。
+  // 金魚の位置はビューポート全体に対するvw/vhで管理されているのに対し、ポイの位置は
+  // pond要素（ページ内の一部領域）に対する百分率のため、pondの実際の画面上の矩形を
+  // 使って座標系を揃える。
+  useEffect(() => {
+    if (debug.scoopCount === previousScoopCountRef.current) {
+      return
+    }
+    previousScoopCountRef.current = debug.scoopCount
+    const pond = pondRef.current
+    if (!pond || !onScoop) {
+      return
+    }
+    const rect = pond.getBoundingClientRect()
+    const poiViewportX = rect.left + rect.width / 2 + offsetXPx
+    const poiViewportY = rect.top + rect.height / 2 + offsetYPx
+    onScoop({
+      xVw: (poiViewportX / window.innerWidth) * 100,
+      yVh: (poiViewportY / window.innerHeight) * 100,
+    })
+  }, [debug.scoopCount, offsetXPx, offsetYPx, onScoop])
 
   return (
     <div
@@ -89,3 +117,8 @@ export function Poi() {
     </div>
   )
 }
+
+// 金魚の群れは60fpsで更新され続けるため、そのステートをApp側に引き上げた際（issue #44）に
+// Poiまで不要に再描画されないようメモ化する。onScoop（catchNearestGoldfish）は
+// useGoldfishSchool側でuseCallbackにより安定した参照として提供される前提
+export const Poi = memo(PoiComponent)
