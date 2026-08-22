@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { findCatchableGoldfishId, type ViewportPosition } from './catchGoldfish'
+import { findCatchableGoldfish, type CatchResult, type ViewportPosition } from './catchGoldfish'
 import { createInitialGoldfishState, stepGoldfish, type GoldfishState } from './goldfishSwim'
 
 export interface GoldfishPose extends GoldfishState {
@@ -25,7 +25,7 @@ function toPoses(entities: GoldfishEntity[]): GoldfishPose[] {
 
 export interface UseGoldfishSchoolResult {
   goldfish: GoldfishPose[]
-  catchNearestGoldfish: (poiPosition: ViewportPosition) => void
+  catchNearestGoldfish: (poiPosition: ViewportPosition) => CatchResult | null
 }
 
 // requestAnimationFrameでstepGoldfish（純粋関数）を毎フレーム評価し、金魚の群れの位置を更新する。
@@ -66,17 +66,18 @@ export function useGoldfishSchool(count: number): UseGoldfishSchoolResult {
   // 捕獲判定・除去ロジックはこのフック内に閉じ、常に最新のentitiesRefを参照するため
   // 依存配列を空にできる。呼び出し側（Poiの掬うジェスチャーコールバック）に安定した
   // 関数参照を渡すことで、金魚の毎フレーム更新がPoiの不要な再描画を招かないようにする（issue #44）
-  const catchNearestGoldfish = useCallback((poiPosition: ViewportPosition) => {
-    const caughtId = findCatchableGoldfishId(
+  const catchNearestGoldfish = useCallback((poiPosition: ViewportPosition): CatchResult | null => {
+    const result = findCatchableGoldfish(
       poiPosition,
       entitiesRef.current.map((entity) => ({ id: entity.id, ...entity.state })),
     )
-    if (caughtId === null) {
-      return
+    if (result === null) {
+      return null
     }
-    const nextEntities = entitiesRef.current.filter((entity) => entity.id !== caughtId)
+    const nextEntities = entitiesRef.current.filter((entity) => entity.id !== result.id)
     entitiesRef.current = nextEntities
     setGoldfish(toPoses(nextEntities))
+    return result
   }, [])
 
   return { goldfish, catchNearestGoldfish }
