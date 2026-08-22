@@ -1,3 +1,10 @@
+# [1.18.0](https://github.com/uchi-stock/kingyo/compare/v1.17.1...v1.18.0) (2026-08-22)
+
+
+### Features
+
+* AR対応するまで「カメラを有効にする」ボタンを非表示にする ([#78](https://github.com/uchi-stock/kingyo/issues/78)) ([430717b](https://github.com/uchi-stock/kingyo/commit/430717b5c9cd6b9b5eec95e5d77cccc5cd08d2ad)), closes [#77](https://github.com/uchi-stock/kingyo/issues/77)
+
 ## [1.17.1](https://github.com/uchi-stock/kingyo/compare/v1.17.0...v1.17.1) (2026-08-22)
 
 
