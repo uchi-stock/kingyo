@@ -92,7 +92,10 @@ function App() {
       <GoldfishSchool goldfish={goldfish} />
       <main className="container py-5 position-relative">
         <div className="bg-white bg-opacity-75 rounded-3 p-3 mb-3">
-          <h1 className="fs-2 fw-bold">金魚掬い</h1>
+          <div className="d-flex align-items-baseline flex-wrap gap-2 mb-2">
+            <h1 className="fs-2 fw-bold mb-0">金魚掬い</h1>
+            <BuildInfo />
+          </div>
           {isTorn && (
             // ポイが破れて操作不能になった（issue #79）ことが見た目（マーカー画像の
             // 切り替え）だけでは分かりにくいという指摘を受け、明示的な表示を追加した（issue #91）
@@ -103,10 +106,9 @@ function App() {
               </button>
             </div>
           )}
-          <p className="mb-2 fs-5" data-testid="elapsed-timer">
+          <p className="mb-0 fs-5" data-testid="elapsed-timer">
             タイム: {formatElapsedTime(elapsedMs)}
           </p>
-          <BuildInfo />
         </div>
         <Poi onScoop={handleScoop} isTorn={isTorn} />
         <div className="bg-white bg-opacity-75 rounded-3 p-3 mt-3">
