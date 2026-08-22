@@ -1,3 +1,10 @@
+# [1.21.0](https://github.com/uchi-stock/kingyo/compare/v1.20.1...v1.21.0) (2026-08-22)
+
+
+### Features
+
+* ポイのサイズを一回り大きくし、中心判定の半径も広げる ([#88](https://github.com/uchi-stock/kingyo/issues/88)) ([59ff9c2](https://github.com/uchi-stock/kingyo/commit/59ff9c2f36b1270fb2c8a538dc3e0673a872b0e7)), closes [#87](https://github.com/uchi-stock/kingyo/issues/87)
+
 ## [1.20.1](https://github.com/uchi-stock/kingyo/compare/v1.20.0...v1.20.1) (2026-08-22)
 
 
