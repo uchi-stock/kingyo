@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/uchi-stock/kingyo/compare/v1.11.1...v1.12.0) (2026-08-22)
+
+
+### Features
+
+* 金魚の数を2倍（4匹→8匹）にする ([#60](https://github.com/uchi-stock/kingyo/issues/60)) ([931935c](https://github.com/uchi-stock/kingyo/commit/931935cf5a77caa9a7099ff96818d1ef41327106))
+
 ## [1.11.1](https://github.com/uchi-stock/kingyo/compare/v1.11.0...v1.11.1) (2026-08-22)
 
 
