@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/uchi-stock/kingyo/compare/v1.14.0...v1.15.0) (2026-08-22)
+
+
+### Features
+
+* 金魚の捕獲に成功した時専用の効果音を再生する ([#67](https://github.com/uchi-stock/kingyo/issues/67)) ([0fbe342](https://github.com/uchi-stock/kingyo/commit/0fbe342d4123dbe3a5ac9c2a727ab9eec83b8000)), closes [#48](https://github.com/uchi-stock/kingyo/issues/48) [#66](https://github.com/uchi-stock/kingyo/issues/66)
+
 # [1.14.0](https://github.com/uchi-stock/kingyo/compare/v1.13.1...v1.14.0) (2026-08-22)
 
 
