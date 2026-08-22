@@ -73,23 +73,33 @@ describe('stepPoiMotion', () => {
     expect(next.xPercent).toBeGreaterThan(50)
   })
 
-  it('中心から離れた状態で操作をやめても、数秒程度では位置がほとんど中央へ戻らずその場に留まる', () => {
-    // 動かして止めた直後にポイが中央へ戻ってしまう不具合の再発防止（issue #39）
+  it('操作をやめた直後（1秒程度）では、中心からのズレの大部分がまだ残っている（強すぎる復元の再発防止。issue #39）', () => {
     let state = { xPercent: 80, yPercent: 50 }
-    for (let i = 0; i < 300; i += 1) {
-      // 300フレーム(1/60秒刻み) = 5秒間、操作をやめて保持した状況を想定
+    for (let i = 0; i < 60; i += 1) {
+      // 60フレーム(1/60秒刻み) = 1秒間、操作をやめて保持した状況を想定
       state = stepPoiMotion(state, { x: 0, y: 0 }, 1 / 60)
     }
-    expect(state.xPercent).toBeGreaterThan(78)
+    // 中心からのズレ(30)の80%以上（24以上）が残っている
+    expect(state.xPercent).toBeGreaterThan(74)
   })
 
-  it('中心から離れた状態で加速度が無い状態が長時間続くと、時間の経過とともに中心へ緩やかに戻っていく', () => {
+  it('中心から離れた状態で加速度が無い状態が数秒続くと、明確に中心へ寄り始める（端に張り付いたままにならない。issue #55）', () => {
     let state = { xPercent: 80, yPercent: 50 }
-    for (let i = 0; i < 3600; i += 1) {
-      // 3600フレーム(1/60秒刻み) = 60秒間の放置を想定
+    for (let i = 0; i < 300; i += 1) {
+      // 300フレーム(1/60秒刻み) = 5秒間の放置を想定
       state = stepPoiMotion(state, { x: 0, y: 0 }, 1 / 60)
     }
-    expect(state.xPercent).toBeLessThan(80)
+    expect(state.xPercent).toBeLessThan(74)
+    expect(state.xPercent).toBeGreaterThan(50)
+  })
+
+  it('中心から離れた状態で加速度が無い状態が長時間続くと、中心付近まで戻る', () => {
+    let state = { xPercent: 80, yPercent: 50 }
+    for (let i = 0; i < 1200; i += 1) {
+      // 1200フレーム(1/60秒刻み) = 20秒間の放置を想定
+      state = stepPoiMotion(state, { x: 0, y: 0 }, 1 / 60)
+    }
+    expect(state.xPercent).toBeLessThan(55)
     expect(state.xPercent).toBeGreaterThanOrEqual(50)
   })
 })
