@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/uchi-stock/kingyo/compare/v1.6.0...v1.6.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* ポイの位置操作の感度を上げ、静止時ノイズのデッドゾーンを追加する ([#33](https://github.com/uchi-stock/kingyo/issues/33)) ([d9da2f5](https://github.com/uchi-stock/kingyo/commit/d9da2f5ed7b256a93a61630bf4abf976f312916b))
+
 # [1.6.0](https://github.com/uchi-stock/kingyo/compare/v1.5.1...v1.6.0) (2026-08-22)
 
 
