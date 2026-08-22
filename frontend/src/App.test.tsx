@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import App from './App.tsx';
+import { GOLDFISH_COUNT } from './components/GoldfishSchool.tsx';
+import { createInitialGoldfishState } from './goldfish/goldfishSwim.ts';
 
 // jsdom既定のDeviceMotionEventスタブを退避しておき、各テスト後に復元する（Poi.test.tsxと同様の理由）
 const originalDeviceMotionEvent = window.DeviceMotionEvent;
@@ -31,6 +33,20 @@ function setUpMatchingPondAndViewport() {
   Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, value: 100 });
 }
 
+// useGoldfishSchoolのcreateEntitiesと同じ式（(id+1)/(count+1)）でseedを算出し、
+// createInitialGoldfishStateで金魚idの初期位置を求める。GOLDFISH_COUNTの変更（issue #57）
+// に追従できるよう、初期位置の数値をテストに直接ハードコードしない
+function goldfishInitialPosition(id: number): { xPercent: number; yPercent: number } {
+  const seed = (id + 1) / (GOLDFISH_COUNT + 1);
+  return createInitialGoldfishState(seed);
+}
+
+// pondがビューポートと一致しているため、pond内%とビューポート相対vw/vhの数値が一致する。
+// xPercent/yPercentのpond内%を、pond（200x100）上のclientX/clientYへ変換する
+function pointerAt(xPercent: number, yPercent: number): { clientX: number; clientY: number } {
+  return { clientX: 200 * (xPercent / 100), clientY: 100 * (yPercent / 100) };
+}
+
 describe('App', () => {
   afterEach(() => {
     window.DeviceMotionEvent = originalDeviceMotionEvent;
@@ -44,6 +60,11 @@ describe('App', () => {
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
   });
 
+  it(`金魚が${GOLDFISH_COUNT}匹表示される（issue #57）`, () => {
+    render(<App />);
+    expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
+  });
+
   it('掬うフリック操作をした瞬間、ポイの近くに金魚がいればその金魚が拡大しながらフェードアウトして消える（issue #44, #52）', async () => {
     setUpMatchingPondAndViewport();
 
@@ -51,14 +72,12 @@ describe('App', () => {
     vi.spyOn(performance, 'now').mockImplementation(() => now);
 
     render(<App />);
-    expect(screen.getAllByTestId('goldfish')).toHaveLength(4);
+    expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
 
-    // 1匹目の金魚（count=4, id=0）の初期位置は xPercent=26, yPercent=46.8 になる
-    // （createSeeds相当のseed = (0+1)/(4+1) = 0.2 から算出。goldfishSwim.tsのcreateInitialGoldfishState参照）。
-    // pondがビューポートと一致しているため、同じ数値のpond内%へポインタでポイを合わせれば、
-    // ポイのビューポート相対vw/vhも同じ値になり、捕獲半径内に収まる
+    // 1匹目の金魚（id=0）の初期位置にポイを合わせれば、捕獲半径内に収まる
+    const { xPercent, yPercent } = goldfishInitialPosition(0);
     const pond = screen.getByTestId('pond');
-    fireEvent.pointerDown(pond, { clientX: 200 * 0.26, clientY: 100 * 0.468 });
+    fireEvent.pointerDown(pond, pointerAt(xPercent, yPercent));
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
@@ -71,12 +90,12 @@ describe('App', () => {
       const img = screen.getAllByTestId('goldfish')[0].querySelector('img');
       expect(img).toHaveStyle({ opacity: '0' });
     });
-    expect(screen.getAllByTestId('goldfish')).toHaveLength(4);
+    expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
 
     // 演出時間（450ms）が経過すると、実際にDOMから除去される
     now += 500;
     await waitFor(() => {
-      expect(screen.getAllByTestId('goldfish')).toHaveLength(3);
+      expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT - 1);
     });
   });
 
@@ -101,7 +120,7 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getByTestId('pond')).toBeInTheDocument();
     });
-    expect(screen.getAllByTestId('goldfish')).toHaveLength(4);
+    expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
   });
 
   it('ポイの中心（半径4以内）で金魚を捕獲すると、ポイが破れて以降金魚を捕獲できなくなる（issue #45）', async () => {
@@ -115,8 +134,9 @@ describe('App', () => {
     const marker = screen.getByTestId('poi-marker');
     expect(marker.tagName).toBe('DIV');
 
-    // 1匹目の金魚（id=0, xPercent=26, yPercent=46.8）の真上（距離0）にポイを合わせ、中心での捕獲を再現する
-    fireEvent.pointerDown(pond, { clientX: 200 * 0.26, clientY: 100 * 0.468 });
+    // 1匹目の金魚（id=0）の真上（距離0）にポイを合わせ、中心での捕獲を再現する
+    const fish0 = goldfishInitialPosition(0);
+    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent, fish0.yPercent));
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
@@ -132,9 +152,10 @@ describe('App', () => {
     // まとめて経過させる
     now += 600;
 
-    // 2匹目の金魚（id=1, xPercent=42, yPercent=83.6）の真上にポイを合わせ、
+    // 2匹目の金魚（id=1）の真上にポイを合わせ、
     // 再度掬うフリックを行っても捕獲できないことを確認する
-    fireEvent.pointerDown(pond, { clientX: 200 * 0.42, clientY: 100 * 0.836 });
+    const fish1 = goldfishInitialPosition(1);
+    fireEvent.pointerDown(pond, pointerAt(fish1.xPercent, fish1.yPercent));
 
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
     now += 50;
@@ -142,7 +163,7 @@ describe('App', () => {
 
     // ポイが既に破れているため、2匹目の金魚に重ねても捕獲されない
     await waitFor(() => {
-      expect(screen.getAllByTestId('goldfish')).toHaveLength(3);
+      expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT - 1);
     });
   });
 
@@ -155,9 +176,9 @@ describe('App', () => {
     render(<App />);
     const pond = screen.getByTestId('pond');
 
-    // 1匹目の金魚（id=0, xPercent=26, yPercent=46.8）から水平に7離れた位置
-    // （捕獲半径10以内・中心判定半径4の外側）にポイを合わせる
-    fireEvent.pointerDown(pond, { clientX: 200 * 0.33, clientY: 100 * 0.468 });
+    // 1匹目の金魚（id=0）から水平に7離れた位置（捕獲半径10以内・中心判定半径4の外側）にポイを合わせる
+    const fish0 = goldfishInitialPosition(0);
+    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent + 7, fish0.yPercent));
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));

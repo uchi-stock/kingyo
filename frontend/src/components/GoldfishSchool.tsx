@@ -6,7 +6,10 @@ import type { GoldfishPose } from '../goldfish/useGoldfishSchool'
 
 const GOLDFISH_IMAGES = [goldfish1, goldfish2, goldfish3, goldfish4]
 
-export const GOLDFISH_COUNT = GOLDFISH_IMAGES.length
+// 画像素材は4種類だが、金魚の匹数はそれとは独立に決める（issue #57）。
+// 画像割り当てはpose.id % GOLDFISH_IMAGES.lengthで循環させているため、
+// 匹数が画像の種類数を超えても同じ画像が複数の金魚に使われるだけで問題なく動作する
+export const GOLDFISH_COUNT = 8
 
 export interface GoldfishSchoolProps {
   goldfish: GoldfishPose[]
