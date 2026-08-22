@@ -55,7 +55,10 @@ export interface UsePoiMotionResult {
 
 // ポイの位置は端末のスライド操作（DeviceMotionEventの加速度を積分）で、
 // 角度は端末の傾き（DeviceOrientationEventのgamma）でそれぞれ独立に操作する（issue #11）。
-export function usePoiMotion(): UsePoiMotionResult {
+// isTorn（issue #45: ポイの中心での捕獲）が真になった以降は、ゲームオーバー表現として
+// 位置・角度操作、および掬うジェスチャー検出を一切受け付けなくなる（issue #79）。
+// 金魚側のアニメーションはこのフックと独立しているため、この凍結の影響を受けない
+export function usePoiMotion(isTorn = false): UsePoiMotionResult {
   const [permission, setPermission] = useState<MotionPermissionState>(computeInitialPermission)
   const [motionState, setMotionState] = useState<PoiMotionState>(CENTER_POI_MOTION_STATE)
   const [angleDeg, setAngleDeg] = useState(0)
@@ -80,6 +83,11 @@ export function usePoiMotion(): UsePoiMotionResult {
     let scoopCountSoFar = 0
 
     const handleOrientation = (event: DeviceOrientationEvent) => {
+      // ポイが破れた後は、角度更新・掬うジェスチャー検出のいずれも行わず、
+      // 破れた瞬間の角度のまま固定する（issue #79）
+      if (isTorn) {
+        return
+      }
       setAngleDeg(orientationToAngleDeg(event.gamma))
 
       const now = performance.now()
@@ -116,10 +124,11 @@ export function usePoiMotion(): UsePoiMotionResult {
     }
     window.addEventListener('deviceorientation', handleOrientation)
     return () => window.removeEventListener('deviceorientation', handleOrientation)
-  }, [])
+  }, [isTorn])
 
   useEffect(() => {
-    if (permission !== 'granted') {
+    // ポイが破れた後は、破れた瞬間の位置のまま固定する（issue #79）
+    if (permission !== 'granted' || isTorn) {
       return
     }
 
@@ -174,7 +183,7 @@ export function usePoiMotion(): UsePoiMotionResult {
       window.removeEventListener('devicemotion', handleMotion)
       cancelAnimationFrame(frameId)
     }
-  }, [permission])
+  }, [permission, isTorn])
 
   const requestPermission = useCallback(async () => {
     const motionRequester = getPermissionRequester(
@@ -227,10 +236,17 @@ export function usePoiMotion(): UsePoiMotionResult {
     return () => window.removeEventListener('pointerdown', handleFirstPointerDown)
   }, [permission, requestPermission])
 
-  const setPositionFromPointer = useCallback((xPercent: number, yPercent: number) => {
-    const clamp01 = (value: number) => Math.min(Math.max(value, 0), 100)
-    setMotionState({ xPercent: clamp01(xPercent), yPercent: clamp01(yPercent) })
-  }, [])
+  const setPositionFromPointer = useCallback(
+    (xPercent: number, yPercent: number) => {
+      // ポイが破れた後は、フォールバック操作（ポインタ）による位置変更も受け付けない（issue #79）
+      if (isTorn) {
+        return
+      }
+      const clamp01 = (value: number) => Math.min(Math.max(value, 0), 100)
+      setMotionState({ xPercent: clamp01(xPercent), yPercent: clamp01(yPercent) })
+    },
+    [isTorn],
+  )
 
   return {
     permission,

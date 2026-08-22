@@ -14,7 +14,7 @@ export interface PoiProps {
 }
 
 function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
-  const { permission, pose, debug, setPositionFromPointer } = usePoiMotion()
+  const { permission, pose, debug, setPositionFromPointer } = usePoiMotion(isTorn)
   const pondRef = useRef<HTMLDivElement>(null)
   const [pondSize, setPondSize] = useState({ width: 0, height: 0 })
   const showManualControl = permission === 'denied' || permission === 'unsupported'
