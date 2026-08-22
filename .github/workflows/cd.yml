@@ -26,8 +26,13 @@ jobs:
       # （Serverless Frameworkの既定命名規則: ${service}-${stage}）
       STACK_NAME: kingyo-hosting-prod
     steps:
+      # frontend/src配下でdev-standards submoduleのshared/ui/*.cssをsymlink共有している
+      # ため（sync-manifest.local.json）、submodules: trueでdev-standardsも取得する
+      # （未取得のままbuildするとsymlinkの参照先が存在せずENOENTで失敗する）
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          submodules: true
 
       - name: Deploy infrastructure (S3 + CloudFront)
         uses: bamiyanapp/dev-standards/.github/actions/deploy-serverless@v2.4.0
