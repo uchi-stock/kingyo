@@ -55,6 +55,18 @@ describe('stepPoiMotion', () => {
     const longDt = stepPoiMotion(CENTER_POI_MOTION_STATE, { x: 1, y: 0 }, 100)
     expect(longDt).toEqual(shortDt)
   })
+
+  it('デッドゾーン未満の微小な加速度（静止時の残留ノイズ相当）は無視され、位置・速度が変化しない', () => {
+    // 実機で観測された静止時の残留値（0.23, -0.01）相当を入力する
+    const next = stepPoiMotion(CENTER_POI_MOTION_STATE, { x: 0.23, y: -0.01 }, 0.05)
+    expect(next).toEqual(CENTER_POI_MOTION_STATE)
+  })
+
+  it('デッドゾーンを超える加速度（意図的なスライド操作相当）は、そのまま速度に反映される', () => {
+    const next = stepPoiMotion(CENTER_POI_MOTION_STATE, { x: 2, y: 0 }, 0.05)
+    expect(next.xPercent).toBeGreaterThan(50)
+    expect(next.velocityXPercentPerSec).toBeGreaterThan(0)
+  })
 })
 
 describe('removeGravity', () => {
