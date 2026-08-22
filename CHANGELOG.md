@@ -1,3 +1,10 @@
+## [1.6.4](https://github.com/uchi-stock/kingyo/compare/v1.6.3...v1.6.4) (2026-08-22)
+
+
+### Bug Fixes
+
+* ポイの中心復元力を大幅に弱め、操作をやめた位置に留まるようにする ([#40](https://github.com/uchi-stock/kingyo/issues/40)) ([1c5c55d](https://github.com/uchi-stock/kingyo/commit/1c5c55dddb608b64f2493895611972a831d37fed))
+
 ## [1.6.3](https://github.com/uchi-stock/kingyo/compare/v1.6.2...v1.6.3) (2026-08-22)
 
 
