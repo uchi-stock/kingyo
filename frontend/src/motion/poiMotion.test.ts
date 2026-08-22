@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { CENTER_POI_MOTION_STATE, orientationToAngleDeg, removeGravity, stepPoiMotion } from './poiMotion'
+import {
+  CENTER_POI_MOTION_STATE,
+  orientationToAngleDeg,
+  removeGravity,
+  smoothAcceleration,
+  stepPoiMotion,
+} from './poiMotion'
 
 describe('orientationToAngleDeg', () => {
   it('傾きがない場合は0度になる', () => {
@@ -84,6 +90,26 @@ describe('stepPoiMotion', () => {
     }
     expect(state.xPercent).toBeLessThan(80)
     expect(state.xPercent).toBeGreaterThanOrEqual(50)
+  })
+})
+
+describe('smoothAcceleration', () => {
+  it('入力が一定値であり続けると、平滑化後の値も時間とともにその値へ収束していく', () => {
+    let smoothed = { x: 0, y: 0 }
+    const raw = { x: 2, y: -1 }
+    for (let i = 0; i < 100; i += 1) {
+      smoothed = smoothAcceleration(raw, smoothed)
+    }
+    expect(smoothed.x).toBeCloseTo(2, 1)
+    expect(smoothed.y).toBeCloseTo(-1, 1)
+  })
+
+  it('1サンプルだけでは入力値全体には追従せず、直前の平滑値寄りの値になる（ノイズの平滑化）', () => {
+    const previousSmoothed = { x: 0, y: 0 }
+    const noisySpike = { x: 5, y: 0 }
+    const next = smoothAcceleration(noisySpike, previousSmoothed)
+    expect(next.x).toBeGreaterThan(0)
+    expect(next.x).toBeLessThan(noisySpike.x)
   })
 })
 

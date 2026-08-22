@@ -51,8 +51,8 @@ export function Poi() {
         data-testid="poi-marker"
         className="position-absolute top-50 start-50 rounded-circle border border-4 border-white"
         style={{
-          width: '3rem',
-          height: '3rem',
+          width: '4rem',
+          height: '4rem',
           transform: `translate(-50%, -50%) translate(${offsetXPx}px, ${offsetYPx}px) rotate(${pose.angleDeg}deg)`,
         }}
         aria-hidden="true"
