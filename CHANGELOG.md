@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/uchi-stock/kingyo/compare/v1.7.0...v1.7.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* 掬うフリック操作時にポイの水平位置が一緒に動いてしまう問題を修正する ([#43](https://github.com/uchi-stock/kingyo/issues/43)) ([69af828](https://github.com/uchi-stock/kingyo/commit/69af828c14ed7544b338805b09a3cbfed7f6f1e1))
+
 # [1.7.0](https://github.com/uchi-stock/kingyo/compare/v1.6.4...v1.7.0) (2026-08-22)
 
 
