@@ -1,13 +1,9 @@
 export interface GoldfishState {
   xPercent: number
   yPercent: number
-  // 進行方向の基準となる角度（度）。0度=右向き、90度=下向き。
+  // 進行方向の基準となる角度（度）。0度=右向き、90度=下向き（画面座標系、時計回りが正）。
   // 端で転回する時以外は変化しない
   headingDeg: number
-}
-
-export interface GoldfishPose extends GoldfishState {
-  facingLeft: boolean
 }
 
 const MARGIN_PERCENT = 10
@@ -17,10 +13,6 @@ const WOBBLE_SPEED_RAD_PER_SEC = 2.5 // 振れの速さ
 
 function normalizeDeg(deg: number): number {
   return ((deg % 360) + 360) % 360
-}
-
-function toFacingLeft(headingDeg: number): boolean {
-  return Math.cos((headingDeg * Math.PI) / 180) < 0
 }
 
 function clampPercent(value: number): number {
@@ -43,7 +35,7 @@ export function stepGoldfish(
   dtSeconds: number,
   elapsedMs: number,
   seed: number,
-): GoldfishPose {
+): GoldfishState {
   const wobbleDeg = WOBBLE_DEG * Math.sin((elapsedMs / 1000) * WOBBLE_SPEED_RAD_PER_SEC + seed * Math.PI * 2)
   const travelRad = ((state.headingDeg + wobbleDeg) * Math.PI) / 180
 
@@ -66,6 +58,5 @@ export function stepGoldfish(
     xPercent: nextX,
     yPercent: nextY,
     headingDeg: nextHeading,
-    facingLeft: toFacingLeft(nextHeading),
   }
 }

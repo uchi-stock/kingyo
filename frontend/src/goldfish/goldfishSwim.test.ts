@@ -22,14 +22,12 @@ describe('stepGoldfish', () => {
     expect(next.xPercent).toBeCloseTo(55, 5)
     expect(next.yPercent).toBeCloseTo(50, 5)
     expect(next.headingDeg).toBe(0)
-    expect(next.facingLeft).toBe(false)
   })
 
-  it('振れ（wobble）は前方を中心に±15度の範囲に収まる', () => {
+  it('振れ（wobble）が加わっても、保持している進行方向の基準（headingDeg）自体は転回しない限り変化しない', () => {
     const state = { xPercent: 50, yPercent: 50, headingDeg: 0 }
     for (let elapsedMs = 0; elapsedMs <= 10000; elapsedMs += 100) {
       const next = stepGoldfish(state, 0.016, elapsedMs, 0.3)
-      // headingDeg自体（保持している進行方向の基準）は転回しない限り変化しない
       expect(next.headingDeg).toBe(0)
     }
   })
@@ -41,7 +39,6 @@ describe('stepGoldfish', () => {
 
     expect(next.xPercent).toBeLessThanOrEqual(90)
     expect(next.headingDeg).toBe(180)
-    expect(next.facingLeft).toBe(true)
   })
 
   it('下端に近づいて壁を超える移動をすると、垂直方向の進行方向が反転し位置は境界内にクランプされる', () => {
@@ -50,17 +47,5 @@ describe('stepGoldfish', () => {
 
     expect(next.yPercent).toBeLessThanOrEqual(90)
     expect(next.headingDeg).toBe(270)
-  })
-
-  it('進行方向の水平成分が負の場合はfacingLeftがtrueになる', () => {
-    const state = { xPercent: 50, yPercent: 50, headingDeg: 180 }
-    const next = stepGoldfish(state, 0.016, 0, 0)
-    expect(next.facingLeft).toBe(true)
-  })
-
-  it('進行方向の水平成分が正の場合はfacingLeftがfalseになる', () => {
-    const state = { xPercent: 50, yPercent: 50, headingDeg: 0 }
-    const next = stepGoldfish(state, 0.016, 0, 0)
-    expect(next.facingLeft).toBe(false)
   })
 })

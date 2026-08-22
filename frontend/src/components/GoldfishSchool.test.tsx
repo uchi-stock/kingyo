@@ -22,4 +22,13 @@ describe('GoldfishSchool', () => {
       expect(el.style.transform).toMatch(/translate\(-?\d+(\.\d+)?vw, -?\d+(\.\d+)?vh\)/)
     }
   })
+
+  it('画像は頭上向き基準のため、進行方向（headingDeg）に合わせてrotateで回転させる（scaleXでの反転はしない）', () => {
+    render(<GoldfishSchool />)
+    const fish = screen.getAllByTestId('goldfish')
+    for (const el of fish) {
+      expect(el.style.transform).toMatch(/rotate\(-?\d+(\.\d+)?deg\)/)
+      expect(el.style.transform).not.toContain('scaleX')
+    }
+  })
 })
