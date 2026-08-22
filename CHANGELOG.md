@@ -1,3 +1,10 @@
+## [1.19.2](https://github.com/uchi-stock/kingyo/compare/v1.19.1...v1.19.2) (2026-08-22)
+
+
+### Bug Fixes
+
+* 最初に設定した掬うジェスチャー音（scoop.wav）を削除する ([#83](https://github.com/uchi-stock/kingyo/issues/83)) ([f31579e](https://github.com/uchi-stock/kingyo/commit/f31579e5b2798993e03873c05b7581a498d675a6)), closes [#66](https://github.com/uchi-stock/kingyo/issues/66) [#68](https://github.com/uchi-stock/kingyo/issues/68) [#81](https://github.com/uchi-stock/kingyo/issues/81)
+
 ## [1.19.1](https://github.com/uchi-stock/kingyo/compare/v1.19.0...v1.19.1) (2026-08-22)
 
 
