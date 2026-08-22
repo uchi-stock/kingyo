@@ -50,9 +50,16 @@ export function removeGravity(
   }
 }
 
-const ACCELERATION_SENSITIVITY = 6 // m/s^2 を %/s^2 相当の速度変化量へ変換する係数
-const DAMPING_PER_SEC = 0.1 // 1秒あたりに速度がこの割合まで減衰する（摩擦・センサーノイズ対策）
+const ACCELERATION_SENSITIVITY = 20 // m/s^2 を %/s^2 相当の速度変化量へ変換する係数
+const DAMPING_PER_SEC = 0.3 // 1秒あたりに速度がこの割合まで減衰する（摩擦・センサーノイズ対策）
 const MAX_DT_SECONDS = 0.1 // タブのバックグラウンド復帰等での大きなdtによる位置の飛びを防ぐ
+const ACCEL_DEADZONE = 0.3 // m/s^2。静止時の残留ノイズ・微小バイアスを無視する閾値
+
+// 閾値未満の加速度成分は0として扱う。実機のデバッグ表示で静止時にも0.2〜0.3m/s^2程度の
+// 残留値が観測されており、これをそのまま積分すると微小なドリフトが蓄積してしまうため（issue #32）
+function applyDeadzone(value: number): number {
+  return Math.abs(value) < ACCEL_DEADZONE ? 0 : value
+}
 
 // 端末のスライド操作（加速度）を積分し、ポイの位置を更新する。速度は毎秒DAMPING_PER_SECの
 // 割合まで指数的に減衰させ、センサーノイズによる際限のないドリフトを抑える。
@@ -66,11 +73,12 @@ export function stepPoiMotion(
     return state
   }
 
+  const accelerationX = applyDeadzone(acceleration.x)
+  const accelerationY = applyDeadzone(acceleration.y)
+
   const damping = Math.pow(DAMPING_PER_SEC, dtSeconds)
-  const nextVelocityX =
-    (state.velocityXPercentPerSec + acceleration.x * ACCELERATION_SENSITIVITY * dtSeconds) * damping
-  const nextVelocityY =
-    (state.velocityYPercentPerSec + acceleration.y * ACCELERATION_SENSITIVITY * dtSeconds) * damping
+  const nextVelocityX = (state.velocityXPercentPerSec + accelerationX * ACCELERATION_SENSITIVITY * dtSeconds) * damping
+  const nextVelocityY = (state.velocityYPercentPerSec + accelerationY * ACCELERATION_SENSITIVITY * dtSeconds) * damping
 
   const nextXPercent = clamp(state.xPercent + nextVelocityX * dtSeconds, 0, 100)
   const nextYPercent = clamp(state.yPercent + nextVelocityY * dtSeconds, 0, 100)
