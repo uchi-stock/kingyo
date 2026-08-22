@@ -247,6 +247,34 @@ describe('App', () => {
     expect(distance).toBeGreaterThan(1.5);
   });
 
+  it('金魚の真上でも、勢いよく掬うと位置に関わらず捕獲に失敗する（issue #82）', async () => {
+    setUpMatchingPondAndViewport();
+    const playCountsBySrc = mockAudioPlayCounts();
+
+    let now = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    render(<App />);
+
+    // 1匹目の金魚（id=0）の真上（距離0）にポイを合わせる（優しく掬えば必ず捕獲できる位置）
+    const { xPercent, yPercent } = goldfishInitialPosition(0);
+    const pond = screen.getByTestId('pond');
+    fireEvent.pointerDown(pond, pointerAt(xPercent, yPercent));
+
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    // 50ms経過でbetaが300度変化 = 6000度/秒（勢いの閾値2400度/秒を超える「勢いのよい」掬い）
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 300 }));
+
+    // 位置的には捕獲できるはずだが、勢いがよすぎるため失敗として扱われる
+    await waitFor(() => {
+      expect(playCountFor(playCountsBySrc, 'scoop-fail')).toBeGreaterThan(1);
+    });
+    expect(playCountFor(playCountsBySrc, 'catch-success')).toBe(1);
+    expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
+  });
+
   it('金魚の捕獲に成功すると、専用の効果音（catch-success.mp3）が再生される（issue #66）', async () => {
     setUpMatchingPondAndViewport();
     const playCountsBySrc = mockAudioPlayCounts();
