@@ -24,7 +24,7 @@ describe('stepPoiMotion', () => {
     expect(stepPoiMotion(CENTER_POI_MOTION_STATE, { x: 1, y: 1 }, 0)).toEqual(CENTER_POI_MOTION_STATE)
   })
 
-  it('加速度が0かつ静止状態の場合は位置・速度が変化しない', () => {
+  it('加速度が0かつ中心にいる場合は位置が変化しない', () => {
     const next = stepPoiMotion(CENTER_POI_MOTION_STATE, { x: 0, y: 0 }, 1)
     expect(next).toEqual(CENTER_POI_MOTION_STATE)
   })
@@ -33,21 +33,21 @@ describe('stepPoiMotion', () => {
     const next = stepPoiMotion(CENTER_POI_MOTION_STATE, { x: 1, y: 0 }, 0.05)
     expect(next.xPercent).toBeGreaterThan(50)
     expect(next.yPercent).toBe(50)
-    expect(next.velocityXPercentPerSec).toBeGreaterThan(0)
   })
 
-  it('速度は時間経過とともに減衰する（加速度なしの2フレーム目）', () => {
-    const withVelocity = { xPercent: 50, yPercent: 50, velocityXPercentPerSec: 10, velocityYPercentPerSec: 0 }
-    const next = stepPoiMotion(withVelocity, { x: 0, y: 0 }, 0.05)
-    expect(next.velocityXPercentPerSec).toBeLessThan(withVelocity.velocityXPercentPerSec)
-    expect(next.velocityXPercentPerSec).toBeGreaterThan(0)
+  it('速度状態を持たないため、加速度が無くなると次のフレームでは位置が変化しない（急停止）', () => {
+    const moved = stepPoiMotion(CENTER_POI_MOTION_STATE, { x: 5, y: 0 }, 0.05)
+    expect(moved.xPercent).toBeGreaterThan(50)
+
+    const stopped = stepPoiMotion(moved, { x: 0, y: 0 }, 0.05)
+    // 中心への復元力はごく緩やかなため、1フレームでの変化は無視できるほど小さい
+    expect(stopped.xPercent).toBeCloseTo(moved.xPercent, 0)
   })
 
-  it('位置は0〜100%の範囲にクランプされ、端では速度がリセットされる', () => {
+  it('位置は0〜100%の範囲にクランプされる', () => {
     // dtはMAX_DT_SECONDS（0.1秒）以内に収め、位置側のクランプのみを検証する
     const next = stepPoiMotion(CENTER_POI_MOTION_STATE, { x: 10000, y: 0 }, 0.1)
     expect(next.xPercent).toBe(100)
-    expect(next.velocityXPercentPerSec).toBe(0)
   })
 
   it('dtが上限（MAX_DT_SECONDS）を超えても位置が飛ばない', () => {
@@ -56,16 +56,34 @@ describe('stepPoiMotion', () => {
     expect(longDt).toEqual(shortDt)
   })
 
-  it('デッドゾーン未満の微小な加速度（静止時の残留ノイズ相当）は無視され、位置・速度が変化しない', () => {
+  it('デッドゾーン未満の微小な加速度（静止時の残留ノイズ相当）は無視され、位置が変化しない', () => {
     // 実機で観測された静止時の残留値（0.23, -0.01）相当を入力する
     const next = stepPoiMotion(CENTER_POI_MOTION_STATE, { x: 0.23, y: -0.01 }, 0.05)
     expect(next).toEqual(CENTER_POI_MOTION_STATE)
   })
 
-  it('デッドゾーンを超える加速度（意図的なスライド操作相当）は、そのまま速度に反映される', () => {
+  it('デッドゾーンを超える加速度（意図的なスライド操作相当）は、そのまま位置に反映される', () => {
     const next = stepPoiMotion(CENTER_POI_MOTION_STATE, { x: 2, y: 0 }, 0.05)
     expect(next.xPercent).toBeGreaterThan(50)
-    expect(next.velocityXPercentPerSec).toBeGreaterThan(0)
+  })
+
+  it('デッドゾーンをわずかに超える程度の残留バイアスが加速度として与わり続けても、中心からのズレは一定範囲に収まる（一方向ドリフトの再発防止）', () => {
+    let state = CENTER_POI_MOTION_STATE
+    for (let i = 0; i < 600; i += 1) {
+      // デッドゾーン(0.3)をわずかに超える程度の、静止時にも起こりうる残留バイアス相当の加速度
+      state = stepPoiMotion(state, { x: 0, y: 0.35 }, 1 / 60)
+    }
+    // 復元力により、際限なく端(0または100)まで到達することはなく、途中の範囲で収束する
+    expect(state.yPercent).toBeLessThan(90)
+  })
+
+  it('中心から離れた状態で加速度が無くなると、時間の経過とともに中心へ緩やかに戻っていく', () => {
+    let state = { xPercent: 80, yPercent: 50 }
+    for (let i = 0; i < 300; i += 1) {
+      state = stepPoiMotion(state, { x: 0, y: 0 }, 1 / 60)
+    }
+    expect(state.xPercent).toBeLessThan(80)
+    expect(state.xPercent).toBeGreaterThanOrEqual(50)
   })
 })
 

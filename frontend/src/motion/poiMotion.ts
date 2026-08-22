@@ -1,15 +1,11 @@
 export interface PoiMotionState {
   xPercent: number
   yPercent: number
-  velocityXPercentPerSec: number
-  velocityYPercentPerSec: number
 }
 
 export const CENTER_POI_MOTION_STATE: PoiMotionState = {
   xPercent: 50,
   yPercent: 50,
-  velocityXPercentPerSec: 0,
-  velocityYPercentPerSec: 0,
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -50,19 +46,29 @@ export function removeGravity(
   }
 }
 
-const ACCELERATION_SENSITIVITY = 20 // m/s^2 を %/s^2 相当の速度変化量へ変換する係数
-const DAMPING_PER_SEC = 0.3 // 1秒あたりに速度がこの割合まで減衰する（摩擦・センサーノイズ対策）
+const RATE_SENSITIVITY = 30 // m/s^2 を %/s の移動速度へ変換する係数（速度状態を持たない直接レート制御）
+const RECENTER_DECAY_PER_SEC = 0.5 // 1秒あたりに中心からのズレがこの割合まで減衰する（残留バイアスによる一方向ドリフトの抑制）
 const MAX_DT_SECONDS = 0.1 // タブのバックグラウンド復帰等での大きなdtによる位置の飛びを防ぐ
 const ACCEL_DEADZONE = 0.3 // m/s^2。静止時の残留ノイズ・微小バイアスを無視する閾値
 
 // 閾値未満の加速度成分は0として扱う。実機のデバッグ表示で静止時にも0.2〜0.3m/s^2程度の
-// 残留値が観測されており、これをそのまま積分すると微小なドリフトが蓄積してしまうため（issue #32）
+// 残留値が観測されており、これをそのまま移動に反映すると微小なドリフトが蓄積してしまうため（issue #32）
 function applyDeadzone(value: number): number {
   return Math.abs(value) < ACCEL_DEADZONE ? 0 : value
 }
 
-// 端末のスライド操作（加速度）を積分し、ポイの位置を更新する。速度は毎秒DAMPING_PER_SECの
-// 割合まで指数的に減衰させ、センサーノイズによる際限のないドリフトを抑える。
+// 端末のスライド操作（加速度）を、速度・運動量を保持しない直接レート制御でポイの位置に反映する。
+// 「今の加速度」だけに比例した移動量を毎フレーム位置へ加算する単一積分のみで、速度状態は
+// 一切持たない。従来は加速度→速度→位置と二重に積分しており、速度側にセンサーの残留バイアスが
+// 蓄積し続けるため、実際のスマホ位置とポイの表示位置が時間とともに乖離していく問題があった
+// （慣性航法におけるドリフトと同種の現象。issue #34）。
+//
+// ただし位置側に何の減衰も無いと、デッドゾーンをわずかに超える程度の残留バイアス
+// （例: 端末を傾けて構えた際の重力除去の誤差）だけでも一方向へ加算され続け、実際には
+// スライド操作をしていなくても表示位置が際限なく片側（上方向等）へドリフトしてしまう。
+// これを防ぐため、中心(50%)からのズレを毎フレーム緩やかに減衰させる復元力を加える。
+// 意図したスライド操作（十分大きい加速度）による移動量はこの復元力よりずっと大きいため
+// 操作感を損なわず、残留バイアスによるドリフト量だけを一定範囲に収められる。
 export function stepPoiMotion(
   state: PoiMotionState,
   acceleration: Acceleration2D,
@@ -76,21 +82,15 @@ export function stepPoiMotion(
   const accelerationX = applyDeadzone(acceleration.x)
   const accelerationY = applyDeadzone(acceleration.y)
 
-  const damping = Math.pow(DAMPING_PER_SEC, dtSeconds)
-  const nextVelocityX = (state.velocityXPercentPerSec + accelerationX * ACCELERATION_SENSITIVITY * dtSeconds) * damping
-  const nextVelocityY = (state.velocityYPercentPerSec + accelerationY * ACCELERATION_SENSITIVITY * dtSeconds) * damping
+  const recenterDecay = Math.pow(RECENTER_DECAY_PER_SEC, dtSeconds)
+  const recenteredXPercent = 50 + (state.xPercent - 50) * recenterDecay
+  const recenteredYPercent = 50 + (state.yPercent - 50) * recenterDecay
 
-  const nextXPercent = clamp(state.xPercent + nextVelocityX * dtSeconds, 0, 100)
-  const nextYPercent = clamp(state.yPercent + nextVelocityY * dtSeconds, 0, 100)
-
-  // 端に到達した場合は速度を打ち消し、境界に張り付いたまま速度だけ蓄積するのを防ぐ
-  const clampedVelocityX = nextXPercent === 0 || nextXPercent === 100 ? 0 : nextVelocityX
-  const clampedVelocityY = nextYPercent === 0 || nextYPercent === 100 ? 0 : nextVelocityY
+  const nextXPercent = clamp(recenteredXPercent + accelerationX * RATE_SENSITIVITY * dtSeconds, 0, 100)
+  const nextYPercent = clamp(recenteredYPercent + accelerationY * RATE_SENSITIVITY * dtSeconds, 0, 100)
 
   return {
     xPercent: nextXPercent,
     yPercent: nextYPercent,
-    velocityXPercentPerSec: clampedVelocityX,
-    velocityYPercentPerSec: clampedVelocityY,
   }
 }
