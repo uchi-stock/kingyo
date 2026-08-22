@@ -56,6 +56,39 @@ function parseTranslateVwVh(transform: string): { xVw: number; yVh: number } {
   return { xVw: Number.parseFloat(match[1]), yVh: Number.parseFloat(match[2]) };
 }
 
+// Audioコンストラクタをモックし、srcごとのplay()呼び出し回数を記録する。
+// usePlaySoundは画面への最初のpointerdownで無音アンロック用のplay()を1回呼ぶため
+// （issue #73）、実際のゲームロジックによる再生かどうかはコンストラクタ呼び出しの有無ではなく、
+// アンロック分の1回を超えてplay()が呼ばれたかどうかで判定する
+function mockAudioPlayCounts(): Map<string, number> {
+  const playCountsBySrc = new Map<string, number>();
+  const AudioMock = vi.fn().mockImplementation(function AudioMock(src?: string) {
+    const resolvedSrc = src ?? '';
+    return {
+      play: vi.fn().mockImplementation(() => {
+        playCountsBySrc.set(resolvedSrc, (playCountsBySrc.get(resolvedSrc) ?? 0) + 1);
+        return Promise.resolve(undefined);
+      }),
+      pause: vi.fn(),
+      currentTime: 0,
+      muted: false,
+      src: resolvedSrc,
+    };
+  });
+  vi.stubGlobal('Audio', AudioMock);
+  return playCountsBySrc;
+}
+
+function playCountFor(playCountsBySrc: Map<string, number>, srcFragment: string): number {
+  let total = 0;
+  for (const [src, count] of playCountsBySrc) {
+    if (src.includes(srcFragment)) {
+      total += count;
+    }
+  }
+  return total;
+}
+
 describe('App', () => {
   afterEach(() => {
     window.DeviceMotionEvent = originalDeviceMotionEvent;
@@ -216,12 +249,7 @@ describe('App', () => {
 
   it('金魚の捕獲に成功すると、専用の効果音（catch-success.mp3）が再生される（issue #66）', async () => {
     setUpMatchingPondAndViewport();
-
-    const play = vi.fn().mockResolvedValue(undefined);
-    const AudioMock = vi.fn().mockImplementation(function AudioMock(src?: string) {
-      return { play, currentTime: 0, src };
-    });
-    vi.stubGlobal('Audio', AudioMock);
+    const playCountsBySrc = mockAudioPlayCounts();
 
     let now = 1000;
     vi.spyOn(performance, 'now').mockImplementation(() => now);
@@ -237,23 +265,17 @@ describe('App', () => {
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
 
+    // 最初のpointerdownによるアンロック分（issue #73）の1回を超えて再生されたことを確認する
     await waitFor(() => {
-      expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('catch-success'))).toBe(
-        true,
-      );
+      expect(playCountFor(playCountsBySrc, 'catch-success')).toBeGreaterThan(1);
     });
-    // 失敗専用の効果音（scoop-fail.mp3）は成功時には鳴らない（issue #68）
-    expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('scoop-fail'))).toBe(false);
+    // 失敗専用の効果音（scoop-fail.mp3）はアンロック分の1回のみで、成功時には鳴らない（issue #68）
+    expect(playCountFor(playCountsBySrc, 'scoop-fail')).toBe(1);
   });
 
   it('掬いに失敗すると、失敗専用の効果音（scoop-fail.mp3）が再生され、捕獲成功専用の効果音（catch-success.mp3）は再生されない（issue #66, #68）', async () => {
     setUpMatchingPondAndViewport();
-
-    const play = vi.fn().mockResolvedValue(undefined);
-    const AudioMock = vi.fn().mockImplementation(function AudioMock(src?: string) {
-      return { play, currentTime: 0, src };
-    });
-    vi.stubGlobal('Audio', AudioMock);
+    const playCountsBySrc = mockAudioPlayCounts();
 
     let now = 1000;
     vi.spyOn(performance, 'now').mockImplementation(() => now);
@@ -269,21 +291,14 @@ describe('App', () => {
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
 
     await waitFor(() => {
-      expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('scoop-fail'))).toBe(true);
+      expect(playCountFor(playCountsBySrc, 'scoop-fail')).toBeGreaterThan(1);
     });
-    expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('catch-success'))).toBe(
-      false,
-    );
+    expect(playCountFor(playCountsBySrc, 'catch-success')).toBe(1);
   });
 
   it('ポイの中心で金魚を捕獲すると、破れ専用の効果音（poi-tear.mp3）が捕獲成功音に重ねて再生される（issue #69）', async () => {
     setUpMatchingPondAndViewport();
-
-    const play = vi.fn().mockResolvedValue(undefined);
-    const AudioMock = vi.fn().mockImplementation(function AudioMock(src?: string) {
-      return { play, currentTime: 0, src };
-    });
-    vi.stubGlobal('Audio', AudioMock);
+    const playCountsBySrc = mockAudioPlayCounts();
 
     let now = 1000;
     vi.spyOn(performance, 'now').mockImplementation(() => now);
@@ -301,21 +316,14 @@ describe('App', () => {
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
 
     await waitFor(() => {
-      expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('poi-tear'))).toBe(true);
+      expect(playCountFor(playCountsBySrc, 'poi-tear')).toBeGreaterThan(1);
     });
-    expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('catch-success'))).toBe(
-      true,
-    );
+    expect(playCountFor(playCountsBySrc, 'catch-success')).toBeGreaterThan(1);
   });
 
   it('捕獲半径内だが中心（半径4）の外側で捕獲した場合は、破れ専用の効果音（poi-tear.mp3）は再生されない（issue #69）', async () => {
     setUpMatchingPondAndViewport();
-
-    const play = vi.fn().mockResolvedValue(undefined);
-    const AudioMock = vi.fn().mockImplementation(function AudioMock(src?: string) {
-      return { play, currentTime: 0, src };
-    });
-    vi.stubGlobal('Audio', AudioMock);
+    const playCountsBySrc = mockAudioPlayCounts();
 
     let now = 1000;
     vi.spyOn(performance, 'now').mockImplementation(() => now);
@@ -333,11 +341,9 @@ describe('App', () => {
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
 
     await waitFor(() => {
-      expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('catch-success'))).toBe(
-        true,
-      );
+      expect(playCountFor(playCountsBySrc, 'catch-success')).toBeGreaterThan(1);
     });
-    expect(AudioMock.mock.calls.some(([src]) => typeof src === 'string' && src.includes('poi-tear'))).toBe(false);
+    expect(playCountFor(playCountsBySrc, 'poi-tear')).toBe(1);
   });
 
   it('捕獲半径内だが中心（半径4）の外側で捕獲した場合は、ポイは破れない（issue #45）', async () => {
