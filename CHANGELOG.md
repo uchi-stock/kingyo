@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/uchi-stock/kingyo/compare/v1.15.0...v1.16.0) (2026-08-22)
+
+
+### Features
+
+* 掬いに失敗した時専用の効果音を再生する ([#70](https://github.com/uchi-stock/kingyo/issues/70)) ([5028c61](https://github.com/uchi-stock/kingyo/commit/5028c61bf9a44e19649d408381db5cea34d51539)), closes [#68](https://github.com/uchi-stock/kingyo/issues/68)
+
 # [1.15.0](https://github.com/uchi-stock/kingyo/compare/v1.14.0...v1.15.0) (2026-08-22)
 
 
