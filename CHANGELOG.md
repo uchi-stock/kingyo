@@ -1,3 +1,10 @@
+## [1.19.1](https://github.com/uchi-stock/kingyo/compare/v1.19.0...v1.19.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* dev-standards共通フォント・共通テーマCSSを適用する ([#76](https://github.com/uchi-stock/kingyo/issues/76)) ([e474b7f](https://github.com/uchi-stock/kingyo/commit/e474b7f790777e63aa72dbb268d21f4050d3bb20)), closes [#75](https://github.com/uchi-stock/kingyo/issues/75) [#75](https://github.com/uchi-stock/kingyo/issues/75)
+
 # [1.19.0](https://github.com/uchi-stock/kingyo/compare/v1.18.0...v1.19.0) (2026-08-22)
 
 
