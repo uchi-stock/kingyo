@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/uchi-stock/kingyo/compare/v1.5.0...v1.5.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* 金魚の画像を頭上向きに統一し、進行方向へ正しく向くようにする ([#28](https://github.com/uchi-stock/kingyo/issues/28)) ([427adb1](https://github.com/uchi-stock/kingyo/commit/427adb1271711c34f391fd2718ef6fc26ab7a2a1))
+
 # [1.5.0](https://github.com/uchi-stock/kingyo/compare/v1.4.0...v1.5.0) (2026-08-22)
 
 
