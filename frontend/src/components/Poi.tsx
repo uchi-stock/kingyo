@@ -14,7 +14,7 @@ export interface PoiProps {
 }
 
 function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
-  const { permission, pose, debug, requestPermission, setPositionFromPointer } = usePoiMotion()
+  const { permission, pose, debug, setPositionFromPointer } = usePoiMotion()
   const pondRef = useRef<HTMLDivElement>(null)
   const [pondSize, setPondSize] = useState({ width: 0, height: 0 })
   const showManualControl = permission === 'denied' || permission === 'unsupported'
@@ -112,18 +112,6 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
           }}
           aria-hidden="true"
         />
-      )}
-
-      {permission === 'unknown' && (
-        <button
-          type="button"
-          className="btn btn-primary position-absolute top-50 start-50 translate-middle"
-          onClick={() => {
-            void requestPermission()
-          }}
-        >
-          センサーを有効にする
-        </button>
       )}
 
       {showManualControl && (

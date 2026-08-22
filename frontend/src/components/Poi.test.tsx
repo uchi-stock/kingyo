@@ -82,7 +82,7 @@ describe('Poi', () => {
     ).toBeInTheDocument()
   })
 
-  it('iOSのようにrequestPermissionが必要な場合、ボタン押下で許可をリクエストし、許可後はボタンが消える', async () => {
+  it('iOSのようにrequestPermissionが必要な場合、専用ボタンなしで画面への最初のタップが許可リクエストのトリガーになる（issue #63）', async () => {
     const requestPermission = vi.fn().mockResolvedValue('granted')
     // @ts-expect-error テスト用にDeviceMotionEventをモックする
     window.DeviceMotionEvent = function DeviceMotionEvent() {}
@@ -90,12 +90,12 @@ describe('Poi', () => {
     window.DeviceMotionEvent.requestPermission = requestPermission
 
     render(<Poi />)
-    const button = screen.getByRole('button', { name: 'センサーを有効にする' })
-    fireEvent.click(button)
+    expect(screen.queryByRole('button', { name: 'センサーを有効にする' })).not.toBeInTheDocument()
 
-    expect(requestPermission).toHaveBeenCalledTimes(1)
+    fireEvent.pointerDown(window)
+
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: 'センサーを有効にする' })).not.toBeInTheDocument()
+      expect(requestPermission).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -107,7 +107,7 @@ describe('Poi', () => {
     window.DeviceMotionEvent.requestPermission = requestPermission
 
     render(<Poi />)
-    fireEvent.click(screen.getByRole('button', { name: 'センサーを有効にする' }))
+    fireEvent.pointerDown(window)
 
     await waitFor(() => {
       expect(
@@ -139,17 +139,20 @@ describe('Poi', () => {
     window.DeviceOrientationEvent.requestPermission = orientationRequestPermission
 
     render(<Poi />)
-    fireEvent.click(screen.getByRole('button', { name: 'センサーを有効にする' }))
+    fireEvent.pointerDown(window)
 
     // どちらのPromiseもまだ解決していない時点で、両方のrequestPermissionが呼ばれている
     // （片方をawaitしてから次を呼ぶと、iOS Safari等でuser activationが失われうるため。issue #14）
-    expect(motionRequestPermission).toHaveBeenCalledTimes(1)
+    await waitFor(() => {
+      expect(motionRequestPermission).toHaveBeenCalledTimes(1)
+    })
     expect(orientationRequestPermission).toHaveBeenCalledTimes(1)
 
+    // Promiseの解決後も例外なく状態更新が完了することを確認する
     resolveOrientation('granted')
     resolveMotion('granted')
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: 'センサーを有効にする' })).not.toBeInTheDocument()
+      expect(screen.getByTestId('pond')).toBeInTheDocument()
     })
   })
 
