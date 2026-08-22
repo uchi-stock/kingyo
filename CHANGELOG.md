@@ -1,3 +1,10 @@
+## [1.13.1](https://github.com/uchi-stock/kingyo/compare/v1.13.0...v1.13.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* 破れる前後でポイの色が異なる問題を修正し、黄色に統一する ([#64](https://github.com/uchi-stock/kingyo/issues/64)) ([ac40e97](https://github.com/uchi-stock/kingyo/commit/ac40e97506107872865a17eb2d00f59105fab322))
+
 # [1.13.0](https://github.com/uchi-stock/kingyo/compare/v1.12.0...v1.13.0) (2026-08-22)
 
 
