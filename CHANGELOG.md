@@ -1,3 +1,10 @@
+# [1.23.0](https://github.com/uchi-stock/kingyo/compare/v1.22.0...v1.23.0) (2026-08-22)
+
+
+### Features
+
+* ポイが破れてゲームオーバーになったことを画面上に表示する ([#92](https://github.com/uchi-stock/kingyo/issues/92)) ([c9946c5](https://github.com/uchi-stock/kingyo/commit/c9946c5442b6ad06e6822f19c8e254333a0dbf6f)), closes [#91](https://github.com/uchi-stock/kingyo/issues/91)
+
 # [1.22.0](https://github.com/uchi-stock/kingyo/compare/v1.21.0...v1.22.0) (2026-08-22)
 
 
