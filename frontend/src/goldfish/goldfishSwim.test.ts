@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createInitialGoldfishState, stepGoldfish } from './goldfishSwim'
+import { createInitialGoldfishState, startFleeing, stepGoldfish } from './goldfishSwim'
 
 // 常に中間値を返すrandom関数。テスト対象の状態はturnCountdownMsを十分大きく
 // 設定しておくことで、ランダム方向転換が発生しない状況を作る
@@ -26,11 +26,23 @@ describe('createInitialGoldfishState', () => {
     expect(state.turnCountdownMs).toBeGreaterThanOrEqual(3000)
     expect(state.turnCountdownMs).toBeLessThanOrEqual(8000)
   })
+
+  it('初期状態では逃走中ではない（fleeCountdownMsが0）', () => {
+    const state = createInitialGoldfishState(0.3, midRandom)
+    expect(state.fleeCountdownMs).toBe(0)
+  })
 })
 
 describe('stepGoldfish', () => {
   it('右向き（heading=0）でwobbleが0になる時刻・seedでは、右方向へ直進する', () => {
-    const state = { xPercent: 50, yPercent: 50, headingDeg: 0, displayHeadingDeg: 0, turnCountdownMs: 10000 }
+    const state = {
+      xPercent: 50,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
     // elapsedMs=0, seed=0 の場合、wobbleDeg = 15*sin(0+0) = 0
     const next = stepGoldfish(state, 1, 0, 0, midRandom)
 
@@ -40,7 +52,14 @@ describe('stepGoldfish', () => {
   })
 
   it('ランダム方向転換のタイマーが尽きていない間は、進行方向の基準（headingDeg）は転回時以外変化しない', () => {
-    const state = { xPercent: 50, yPercent: 50, headingDeg: 0, displayHeadingDeg: 0, turnCountdownMs: 10000 }
+    const state = {
+      xPercent: 50,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
     for (let elapsedMs = 0; elapsedMs <= 5000; elapsedMs += 100) {
       const next = stepGoldfish(state, 0.016, elapsedMs, 0.3, midRandom)
       expect(next.headingDeg).toBe(0)
@@ -48,7 +67,14 @@ describe('stepGoldfish', () => {
   })
 
   it('ランダム方向転換のタイマーが尽きると、headingDegが変化し、タイマーがリセットされる', () => {
-    const state = { xPercent: 50, yPercent: 50, headingDeg: 0, displayHeadingDeg: 0, turnCountdownMs: 0 }
+    const state = {
+      xPercent: 50,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 0,
+      fleeCountdownMs: 0,
+    }
     // random()が常に1を返す場合、オフセットは(1*2-1)*90 = 90度
     const next = stepGoldfish(state, 0.016, 0, 0, () => 1)
 
@@ -57,7 +83,14 @@ describe('stepGoldfish', () => {
   })
 
   it('右端に近づいて壁を超える移動をすると、水平方向の進行方向が反転し位置は境界内にクランプされる', () => {
-    const state = { xPercent: 89, yPercent: 50, headingDeg: 0, displayHeadingDeg: 0, turnCountdownMs: 10000 }
+    const state = {
+      xPercent: 89,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
     // wobbleDeg=0となるelapsedMs=0, seed=0を使い、純粋に直進のみで壁に当たる状況を作る
     const next = stepGoldfish(state, 1, 0, 0, midRandom)
 
@@ -66,7 +99,14 @@ describe('stepGoldfish', () => {
   })
 
   it('下端に近づいて壁を超える移動をすると、垂直方向の進行方向が反転し位置は境界内にクランプされる', () => {
-    const state = { xPercent: 50, yPercent: 89, headingDeg: 90, displayHeadingDeg: 90, turnCountdownMs: 10000 }
+    const state = {
+      xPercent: 50,
+      yPercent: 89,
+      headingDeg: 90,
+      displayHeadingDeg: 90,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
     const next = stepGoldfish(state, 1, 0, 0, midRandom)
 
     expect(next.yPercent).toBeLessThanOrEqual(90)
@@ -75,7 +115,14 @@ describe('stepGoldfish', () => {
 
   it('見た目の回転角度（displayHeadingDeg）は、目標角度（headingDeg）へ時間をかけて滑らかに追従する', () => {
     // 壁に当たって進行方向（headingDeg）が瞬時に180度反転する状況を作る
-    const state = { xPercent: 89, yPercent: 50, headingDeg: 0, displayHeadingDeg: 0, turnCountdownMs: 10000 }
+    const state = {
+      xPercent: 89,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
     const afterBounce = stepGoldfish(state, 1, 0, 0, midRandom)
     expect(afterBounce.headingDeg).toBe(180)
     // headingDegは瞬時に反転するが、displayHeadingDegはまだ目標（180度）に到達していない
@@ -88,5 +135,107 @@ describe('stepGoldfish', () => {
       current = stepGoldfish(current, 0.05, i * 50, 0, midRandom)
     }
     expect(current.displayHeadingDeg).toBeCloseTo(180, 0)
+  })
+
+  it('逃走中（fleeCountdownMs > 0）は、通常の何倍かの速さで進む（issue #53）', () => {
+    const normalState = {
+      xPercent: 50,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
+    const fleeingState = { ...normalState, fleeCountdownMs: 1500 }
+
+    const normalNext = stepGoldfish(normalState, 1, 0, 0, midRandom)
+    const fleeingNext = stepGoldfish(fleeingState, 1, 0, 0, midRandom)
+
+    const normalDistance = normalNext.xPercent - normalState.xPercent
+    const fleeingDistance = fleeingNext.xPercent - fleeingState.xPercent
+    expect(fleeingDistance).toBeGreaterThan(normalDistance)
+  })
+
+  it('逃走中はランダムな方向転換のタイマーが尽きていても、方向転換は行われない（issue #53）', () => {
+    const state = {
+      xPercent: 50,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 0,
+      fleeCountdownMs: 1500,
+    }
+    // random()が常に1を返す（本来なら90度のオフセットが発生する）状況でも、逃走中は無視される
+    const next = stepGoldfish(state, 0.016, 0, 0, () => 1)
+    expect(next.headingDeg).toBe(0)
+  })
+
+  it('逃走中の残り時間は経過とともに減少し、0になると通常状態に戻る', () => {
+    let state = {
+      xPercent: 50,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 1500,
+    }
+    for (let i = 0; i < 100; i += 1) {
+      state = stepGoldfish(state, 0.02, i * 20, 0, midRandom)
+    }
+    expect(state.fleeCountdownMs).toBe(0)
+  })
+})
+
+describe('startFleeing', () => {
+  it('脅威の位置から見て金魚が右側にいる場合、右方向（0度）へ逃げる進行方向を設定する', () => {
+    const state = {
+      xPercent: 60,
+      yPercent: 50,
+      headingDeg: 180,
+      displayHeadingDeg: 180,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
+    const next = startFleeing(state, { xPercent: 50, yPercent: 50 })
+    expect(next.headingDeg).toBeCloseTo(0, 5)
+  })
+
+  it('脅威の位置から見て金魚が左側にいる場合、左方向（180度）へ逃げる進行方向を設定する', () => {
+    const state = {
+      xPercent: 40,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
+    const next = startFleeing(state, { xPercent: 50, yPercent: 50 })
+    expect(next.headingDeg).toBeCloseTo(180, 5)
+  })
+
+  it('逃走時間（fleeCountdownMs）を設定する', () => {
+    const state = {
+      xPercent: 60,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
+    const next = startFleeing(state, { xPercent: 50, yPercent: 50 })
+    expect(next.fleeCountdownMs).toBeGreaterThan(0)
+  })
+
+  it('脅威と金魚の位置が完全に一致する場合、方向を決められないため現在の進行方向を維持する', () => {
+    const state = {
+      xPercent: 50,
+      yPercent: 50,
+      headingDeg: 123,
+      displayHeadingDeg: 123,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
+    const next = startFleeing(state, { xPercent: 50, yPercent: 50 })
+    expect(next.headingDeg).toBe(123)
   })
 })

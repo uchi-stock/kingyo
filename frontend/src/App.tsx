@@ -9,21 +9,23 @@ import { useGoldfishSchool } from './goldfish/useGoldfishSchool';
 function App() {
   // 掬うジェスチャー（Poi）と金魚の位置判定を組み合わせて捕獲するため、
   // 金魚の状態をAppで保持し、両コンポーネントへ配線する（issue #44）
-  const { goldfish, catchNearestGoldfish } = useGoldfishSchool(GOLDFISH_COUNT);
+  const { goldfish, catchNearestGoldfish, startFleeingNearestGoldfish } = useGoldfishSchool(GOLDFISH_COUNT);
   // ポイの中心で金魚を捕獲すると紙が破れ、以降は捕獲できなくなる（issue #45）
   const [isTorn, setIsTorn] = useState(false);
 
   const handleScoop = useCallback(
     (poiPosition: ViewportPosition) => {
-      if (isTorn) {
-        return;
-      }
-      const result = catchNearestGoldfish(poiPosition);
+      // ポイが既に破れている場合は捕獲を試みず、常に「失敗」として扱う
+      const result = isTorn ? null : catchNearestGoldfish(poiPosition);
       if (result?.isCenterHit) {
         setIsTorn(true);
       }
+      // 捕獲できなかった場合、驚いた近くの金魚が逃げる（issue #53）
+      if (result === null) {
+        startFleeingNearestGoldfish(poiPosition);
+      }
     },
-    [isTorn, catchNearestGoldfish],
+    [isTorn, catchNearestGoldfish, startFleeingNearestGoldfish],
   );
 
   return (
