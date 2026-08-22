@@ -1,13 +1,17 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { memo, useEffect, useRef, useState } from 'react'
+import poiTorn from '../assets/poi/poi-torn.png'
 import type { ViewportPosition } from '../goldfish/catchGoldfish'
 import { usePoiMotion } from '../motion/usePoiMotion'
 
 export interface PoiProps {
   onScoop?: (position: ViewportPosition) => void
+  // ポイの中心で金魚を捕獲し紙が破れた状態かどうか（issue #45）。
+  // 破れた状態ではマーカー表示を破れ画像に切り替える
+  isTorn?: boolean
 }
 
-function PoiComponent({ onScoop }: PoiProps) {
+function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
   const { permission, pose, debug, requestPermission, setPositionFromPointer } = usePoiMotion()
   const pondRef = useRef<HTMLDivElement>(null)
   const [pondSize, setPondSize] = useState({ width: 0, height: 0 })
@@ -75,16 +79,31 @@ function PoiComponent({ onScoop }: PoiProps) {
       onPointerMove={showManualControl ? handlePointerInput : undefined}
       data-testid="pond"
     >
-      <div
-        data-testid="poi-marker"
-        className="position-absolute top-50 start-50 rounded-circle border border-4 border-white"
-        style={{
-          width: '4rem',
-          height: '4rem',
-          transform: `translate(-50%, -50%) translate(${offsetXPx}px, ${offsetYPx}px) rotate(${pose.angleDeg}deg)`,
-        }}
-        aria-hidden="true"
-      />
+      {isTorn ? (
+        // ポイの中心で金魚を捕獲し紙が破れた状態の表示（issue #45）。
+        // 通常時のマーカーと同じtransformロジックで位置・角度を反映する
+        <img
+          src={poiTorn}
+          alt=""
+          data-testid="poi-marker"
+          className="position-absolute top-50 start-50"
+          style={{
+            width: '4rem',
+            transform: `translate(-50%, -50%) translate(${offsetXPx}px, ${offsetYPx}px) rotate(${pose.angleDeg}deg)`,
+          }}
+        />
+      ) : (
+        <div
+          data-testid="poi-marker"
+          className="position-absolute top-50 start-50 rounded-circle border border-4 border-white"
+          style={{
+            width: '4rem',
+            height: '4rem',
+            transform: `translate(-50%, -50%) translate(${offsetXPx}px, ${offsetYPx}px) rotate(${pose.angleDeg}deg)`,
+          }}
+          aria-hidden="true"
+        />
+      )}
 
       {permission === 'unknown' && (
         <button
