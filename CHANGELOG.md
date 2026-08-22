@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/uchi-stock/kingyo/compare/v1.9.0...v1.10.0) (2026-08-22)
+
+
+### Features
+
+* 掬うジェスチャー時に効果音を再生する ([#49](https://github.com/uchi-stock/kingyo/issues/49)) ([e29c381](https://github.com/uchi-stock/kingyo/commit/e29c38123e9a461c164eba01257b4978cd870592))
+
 # [1.9.0](https://github.com/uchi-stock/kingyo/compare/v1.8.0...v1.9.0) (2026-08-22)
 
 
