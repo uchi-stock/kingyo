@@ -104,6 +104,14 @@ describe('App', () => {
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
   });
 
+  it('ゲーム画面の<main>はposition-relativeを持つ（issue #105）', () => {
+    // position: fixedのCameraBackground・GoldfishSchoolより後にDOM上へ現れる<main>が
+    // position指定を持たないと、CSSの描画順序上タイトル等のテキストがそれらの背後に
+    // 隠れてしまう（issue #101で発生した回帰）。position-relativeが外れないことを保証する
+    const { container } = render(<App />);
+    expect(container.querySelector('main')).toHaveClass('position-relative');
+  });
+
   it(`金魚が${GOLDFISH_COUNT}匹表示される（issue #57）`, () => {
     render(<App />);
     expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
