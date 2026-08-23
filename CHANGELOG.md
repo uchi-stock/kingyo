@@ -1,3 +1,10 @@
+## [1.29.1](https://github.com/uchi-stock/kingyo/compare/v1.29.0...v1.29.1) (2026-08-23)
+
+
+### Bug Fixes
+
+* ゲーム画面のタイトル・タイム・ランキングボタンが背景の下に隠れる不具合を修正 ([#107](https://github.com/uchi-stock/kingyo/issues/107)) ([25747c3](https://github.com/uchi-stock/kingyo/commit/25747c3cd9d9fef9afb149f9e37b3550626a9f02))
+
 # [1.29.0](https://github.com/uchi-stock/kingyo/compare/v1.28.0...v1.29.0) (2026-08-23)
 
 
