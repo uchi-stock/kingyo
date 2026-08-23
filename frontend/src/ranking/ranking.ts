@@ -1,5 +1,7 @@
 export interface RankingEntry {
   timeMs: number
+  // 記録達成までに捕獲できた金魚の数（issue #99）
+  catchCount: number
   recordedAt: string
 }
 
@@ -15,6 +17,7 @@ function isRankingEntry(value: unknown): value is RankingEntry {
     typeof value === 'object' &&
     value !== null &&
     typeof (value as RankingEntry).timeMs === 'number' &&
+    typeof (value as RankingEntry).catchCount === 'number' &&
     typeof (value as RankingEntry).recordedAt === 'string'
   )
 }
@@ -41,10 +44,11 @@ export function loadRanking(): RankingEntry[] {
 }
 
 // 新しい記録を追加し、記録時間の降順（長く遊べたほど上位）に並べ替えた上で
-// 上位MAX_ENTRIES件のみを保存する。ポイが破れてタイマーが停止した時点で呼ぶ想定
-export function addRankingEntry(timeMs: number): RankingEntry[] {
+// 上位MAX_ENTRIES件のみを保存する。ポイが破れてタイマーが停止した時点で呼ぶ想定。
+// catchCountはそれまでに捕獲できた金魚の数（issue #99）
+export function addRankingEntry(timeMs: number, catchCount: number): RankingEntry[] {
   const entries = loadRanking()
-  entries.push({ timeMs, recordedAt: new Date().toISOString() })
+  entries.push({ timeMs, catchCount, recordedAt: new Date().toISOString() })
   entries.sort((a, b) => b.timeMs - a.timeMs)
   const trimmed = entries.slice(0, MAX_ENTRIES)
 

@@ -283,6 +283,12 @@ describe('App', () => {
     expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
     expect(screen.getByTestId('poi-marker').tagName).toBe('IMG');
     expect(screen.getByTestId('poi-marker').getAttribute('src')).toContain('poi-torn');
+
+    // 一度も捕獲できていないため、ランキングの捕獲数は0で記録される（issue #99）
+    const saved = JSON.parse(localStorage.getItem('kingyo-ranking') ?? '[]');
+    expect(saved).toHaveLength(1);
+    expect(saved[0].catchCount).toBe(0);
+    expect(screen.getByTestId('ranking-list')).toHaveTextContent('（0匹）');
   });
 
   it('金魚の捕獲に成功すると、専用の効果音（catch-success.mp3）が再生される（issue #66）', async () => {
@@ -420,7 +426,7 @@ describe('App', () => {
     expect(screen.getByTestId('ranking-empty')).toBeInTheDocument();
   });
 
-  it('ポイが破れると、その時点までの経過時間がランキングへ記録される（issue #89）', async () => {
+  it('ポイが破れると、その時点までの経過時間と捕獲数がランキングへ記録される（issue #89, #99）', async () => {
     setUpMatchingPondAndViewport();
 
     let now = 1000;
@@ -452,6 +458,9 @@ describe('App', () => {
     expect(saved).toHaveLength(1);
     expect(typeof saved[0].timeMs).toBe('number');
     expect(saved[0].timeMs).toBeGreaterThanOrEqual(0);
+    // 中心での捕獲は捕獲成功でもあるため、捕獲数は1になる
+    expect(saved[0].catchCount).toBe(1);
+    expect(screen.getByTestId('ranking-list')).toHaveTextContent('（1匹）');
   });
 
   it('ポイが破れる前は「ゲームオーバー」表示が出ない（issue #91）', () => {
@@ -539,5 +548,10 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getByTestId('game-over-message')).toBeInTheDocument();
     });
+
+    // リトライ後の捕獲数は0から数え直されるため、2回目の記録も1匹として保存される（issue #99）
+    const saved = JSON.parse(localStorage.getItem('kingyo-ranking') ?? '[]');
+    expect(saved).toHaveLength(2);
+    expect(saved.every((entry: { catchCount: number }) => entry.catchCount === 1)).toBe(true);
   });
 });

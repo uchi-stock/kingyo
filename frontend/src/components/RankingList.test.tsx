@@ -9,18 +9,18 @@ describe('RankingList', () => {
     expect(screen.queryByTestId('ranking-list')).not.toBeInTheDocument()
   })
 
-  it('記録を受け取った順序のまま、フォーマットした時間で表示する', () => {
+  it('記録を受け取った順序のまま、フォーマットした時間と捕獲数で表示する', () => {
     render(
       <RankingList
         entries={[
-          { timeMs: 65432, recordedAt: '2026-01-01T00:00:00.000Z' },
-          { timeMs: 12345, recordedAt: '2026-01-02T00:00:00.000Z' },
+          { timeMs: 65432, catchCount: 5, recordedAt: '2026-01-01T00:00:00.000Z' },
+          { timeMs: 12345, catchCount: 2, recordedAt: '2026-01-02T00:00:00.000Z' },
         ]}
       />,
     )
     const list = screen.getByTestId('ranking-list')
-    expect(list).toHaveTextContent('01:05.4')
-    expect(list).toHaveTextContent('00:12.3')
+    expect(list).toHaveTextContent('01:05.4（5匹）')
+    expect(list).toHaveTextContent('00:12.3（2匹）')
     expect(screen.queryByTestId('ranking-empty')).not.toBeInTheDocument()
   })
 })

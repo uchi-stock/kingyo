@@ -30,6 +30,8 @@ function App() {
   // ランキングへ記録する（issue #89）
   const { elapsedMs, start: startTimer, stop: stopTimer, reset: resetTimer } = useElapsedTimer();
   const [ranking, setRanking] = useState<RankingEntry[]>(() => loadRanking());
+  // 記録達成までに捕獲できた金魚の数。タイムと合わせてランキングへ記録する（issue #99）
+  const [catchCount, setCatchCount] = useState(0);
 
   const handleScoop = useCallback(
     (poiPosition: ViewportPosition, intensity: ScoopIntensity) => {
@@ -48,7 +50,7 @@ function App() {
         playPoiTearSound();
         startFleeingNearestGoldfish(poiPosition);
         setIsTorn(true);
-        setRanking(addRankingEntry(stopTimer()));
+        setRanking(addRankingEntry(stopTimer(), catchCount));
         return;
       }
       const result = catchNearestGoldfish(poiPosition);
@@ -59,15 +61,19 @@ function App() {
         return;
       }
       playCatchSuccessSound();
+      // 捕獲数はランキング記録用に、成否に関わらず捕獲成功のたびに数える（issue #99）
+      const nextCatchCount = catchCount + 1;
+      setCatchCount(nextCatchCount);
       if (result.isCenterHit) {
         // 中心での捕獲時は、捕獲成功音に加えて破れる音も重ねて鳴らす（issue #69）
         playPoiTearSound();
         setIsTorn(true);
-        setRanking(addRankingEntry(stopTimer()));
+        setRanking(addRankingEntry(stopTimer(), nextCatchCount));
       }
     },
     [
       isTorn,
+      catchCount,
       catchNearestGoldfish,
       startFleeingNearestGoldfish,
       playCatchSuccessSound,
@@ -84,6 +90,7 @@ function App() {
     resetGoldfish();
     resetTimer();
     setIsTorn(false);
+    setCatchCount(0);
   }, [resetGoldfish, resetTimer]);
 
   return (

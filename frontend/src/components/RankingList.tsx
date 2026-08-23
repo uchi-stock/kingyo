@@ -18,7 +18,7 @@ export function RankingList({ entries }: RankingListProps) {
     <ol className="mb-0 ps-4" data-testid="ranking-list">
       {entries.map((entry, index) => (
         <li key={`${entry.recordedAt}-${index}`} className="small">
-          {formatElapsedTime(entry.timeMs)}
+          {formatElapsedTime(entry.timeMs)}（{entry.catchCount}匹）
         </li>
       ))}
     </ol>
