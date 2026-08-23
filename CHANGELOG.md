@@ -1,3 +1,10 @@
+# [1.36.0](https://github.com/uchi-stock/kingyo/compare/v1.35.2...v1.36.0) (2026-08-23)
+
+
+### Features
+
+* 加速度センサーが使えない場合、掬う動作をタップで代替する ([#134](https://github.com/uchi-stock/kingyo/issues/134)) ([3e0c07b](https://github.com/uchi-stock/kingyo/commit/3e0c07b3cc5750f4f3e6cc98d656f62897c45dde))
+
 ## [1.35.2](https://github.com/uchi-stock/kingyo/compare/v1.35.1...v1.35.2) (2026-08-23)
 
 
