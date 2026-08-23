@@ -255,18 +255,22 @@ export function usePoiMotion(isTorn = false): UsePoiMotionResult {
 
   // センサー許可が必要な環境（iOS Safari等）でも、専用の「有効にする」ボタン操作を
   // ユーザーに求めず、画面への最初のタップ（既に発生する自然な操作）をそのまま許可
-  // リクエストのトリガーとする。requestPermission()はユーザー操作起点でなければ
-  // 許可ダイアログを出さないブラウザがあるため、ボタンではなく最初のpointerdown
-  // イベント自体がその役割を果たす（issue #14と同様の制約への対応。issue #63）
+  // リクエストのトリガーとする（issue #63）。トリガーには『click』イベントを使う。
+  // 実機診断（issue #109）で、pointerdownをトリガーにすると
+  // 「Requesting device motion access requires a user gesture to prompt」という
+  // 例外が発生することが判明した。WHATWGのUser Activation仕様上、pointerdown/touchstartは
+  // 「activation triggering input event」に含まれておらず（click/touchend/pointerup等は
+  // 含まれる）、iOS SafariのrequestPermission()はpointerdown起点の呼び出しを
+  // 正規のユーザー操作と認識しないため、clickに変更する
   useEffect(() => {
     if (permission !== 'unknown') {
       return
     }
-    const handleFirstPointerDown = () => {
+    const handleFirstClick = () => {
       void requestPermission()
     }
-    window.addEventListener('pointerdown', handleFirstPointerDown, { once: true })
-    return () => window.removeEventListener('pointerdown', handleFirstPointerDown)
+    window.addEventListener('click', handleFirstClick, { once: true })
+    return () => window.removeEventListener('click', handleFirstClick)
   }, [permission, requestPermission])
 
   const setPositionFromPointer = useCallback(
