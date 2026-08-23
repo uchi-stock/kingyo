@@ -1,3 +1,10 @@
+# [1.35.0](https://github.com/uchi-stock/kingyo/compare/v1.34.5...v1.35.0) (2026-08-23)
+
+
+### Features
+
+* 金魚同士が重ならないよう、接近時に互いを避けて方向転換する ([#130](https://github.com/uchi-stock/kingyo/issues/130)) ([2aa94d0](https://github.com/uchi-stock/kingyo/commit/2aa94d05664e264780e29939a7da4c893430bed9))
+
 ## [1.34.5](https://github.com/uchi-stock/kingyo/compare/v1.34.4...v1.34.5) (2026-08-23)
 
 
