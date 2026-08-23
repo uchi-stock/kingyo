@@ -10,6 +10,7 @@ import { Poi } from './components/Poi';
 import { RankingList } from './components/RankingList';
 import type { ViewportPosition } from './goldfish/catchGoldfish';
 import { useGoldfishSchool } from './goldfish/useGoldfishSchool';
+import { vibrateGameOver } from './haptics/vibrateGameOver';
 import type { ScoopIntensity } from './motion/scoopGesture';
 import { addRankingEntry, formatElapsedTime, loadRanking, type RankingEntry } from './ranking/ranking';
 import { useElapsedTimer } from './ranking/useElapsedTimer';
@@ -50,6 +51,7 @@ function App() {
         playPoiTearSound();
         startFleeingNearestGoldfish(poiPosition);
         setIsTorn(true);
+        vibrateGameOver();
         setRanking(addRankingEntry(stopTimer(), catchCount));
         return;
       }
@@ -68,6 +70,7 @@ function App() {
         // 中心での捕獲時は、捕獲成功音に加えて破れる音も重ねて鳴らす（issue #69）
         playPoiTearSound();
         setIsTorn(true);
+        vibrateGameOver();
         setRanking(addRankingEntry(stopTimer(), nextCatchCount));
       }
     },
