@@ -25,6 +25,9 @@ jobs:
       # infra/serverless.ymlのservice名・provider.stageから決まるCloudFormationスタック名
       # （Serverless Frameworkの既定命名規則: ${service}-${stage}）
       STACK_NAME: kingyo-hosting-prod
+      # backend/serverless.ymlのservice名・provider.stageから決まるCloudFormationスタック名
+      # （issue #110, #114）
+      RANKING_API_STACK_NAME: kingyo-ranking-api-prod
     steps:
       # frontend/src配下でdev-standards submoduleのshared/ui/*.cssをsymlink共有している
       # ため（sync-manifest.local.json）、submodules: trueでdev-standardsも取得する
@@ -43,9 +46,34 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
+      # ランキングAPI（Lambda + API Gateway + DynamoDB、issue #110, #112）をデプロイする。
+      # backendはnpm workspacesの一部（issue #111）のため、依存インストールはリポジトリ
+      # ルートで行う
+      - name: Deploy ranking API backend
+        uses: bamiyanapp/dev-standards/.github/actions/deploy-serverless@v2.4.0
+        with:
+          working-directory: backend
+          node-version: "22"
+          workspaces: true
+          deploy-command: npx osls deploy
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Resolve ranking API endpoint
+        id: ranking_api
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          API_ENDPOINT=$(aws cloudformation describe-stacks --stack-name "$RANKING_API_STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='ApiEndpoint'].OutputValue" --output text)
+          echo "api_endpoint=$API_ENDPOINT" >> "$GITHUB_OUTPUT"
+
       # npm workspaces構成（issue #111）のため、依存インストールはリポジトリルートで
-      # 行う（frontend単体にはpackage-lock.jsonが存在しない）
+      # 行う（frontend単体にはpackage-lock.jsonが存在しない）。ランキングAPIの
+      # エンドポイントをVITE_API_BASE_URLとしてビルド時に埋め込む（issue #113, #114）
       - name: Build frontend
+        env:
+          VITE_API_BASE_URL: ${{ steps.ranking_api.outputs.api_endpoint }}
         run: |
           npm ci
           npm run build --workspace frontend
@@ -83,4 +111,5 @@ jobs:
             echo "### デプロイ完了"
             echo ""
             echo "- URL: https://${{ steps.stack.outputs.distribution_domain }}"
+            echo "- ランキングAPI: ${{ steps.ranking_api.outputs.api_endpoint }}"
           } >> "$GITHUB_STEP_SUMMARY"
