@@ -32,6 +32,9 @@ function App() {
   const [ranking, setRanking] = useState<RankingEntry[]>(() => loadRanking());
   // 記録達成までに捕獲できた金魚の数。タイムと合わせてランキングへ記録する（issue #99）
   const [catchCount, setCatchCount] = useState(0);
+  // ゲーム画面はスクロールなしで1画面に収め、ランキングは別画面へ遷移して表示する（issue #101）。
+  // URLルーティングは追加せず、単純なstateで画面を切り替える
+  const [view, setView] = useState<'game' | 'ranking'>('game');
 
   const handleScoop = useCallback(
     (poiPosition: ViewportPosition, intensity: ScoopIntensity) => {
@@ -93,15 +96,48 @@ function App() {
     setCatchCount(0);
   }, [resetGoldfish, resetTimer]);
 
+  // ランキング画面表示中は、カメラ映像・金魚・ポイ（センサー購読）を停止するため、
+  // ゲーム画面用のコンポーネントごとアンマウントする（issue #101）
+  if (view === 'ranking') {
+    return (
+      <main className="d-flex flex-column p-3" style={{ height: '100dvh', overflow: 'hidden' }}>
+        <div className="d-flex align-items-center gap-2 mb-3 flex-shrink-0">
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm"
+            onClick={() => setView('game')}
+            data-testid="back-to-game-button"
+          >
+            ← ゲームに戻る
+          </button>
+          <h1 className="fs-4 fw-bold mb-0">ランキング</h1>
+        </div>
+        <div className="bg-white bg-opacity-75 rounded-3 p-3 overflow-auto">
+          <RankingList entries={ranking} />
+        </div>
+      </main>
+    );
+  }
+
   return (
     <>
       <CameraBackground />
       <GoldfishSchool goldfish={goldfish} />
-      <main className="container py-5 position-relative">
-        <div className="bg-white bg-opacity-75 rounded-3 p-3 mb-3">
-          <div className="d-flex align-items-baseline flex-wrap gap-2 mb-2">
-            <h1 className="fs-2 fw-bold mb-0">金魚掬い</h1>
-            <BuildInfo />
+      <main className="d-flex flex-column p-3" style={{ height: '100dvh', overflow: 'hidden' }}>
+        <div className="bg-white bg-opacity-75 rounded-3 p-3 mb-3 flex-shrink-0">
+          <div className="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-2">
+            <div className="d-flex align-items-baseline flex-wrap gap-2">
+              <h1 className="fs-2 fw-bold mb-0">金魚掬い</h1>
+              <BuildInfo />
+            </div>
+            <button
+              type="button"
+              className="btn btn-outline-secondary btn-sm"
+              onClick={() => setView('ranking')}
+              data-testid="show-ranking-button"
+            >
+              ランキング
+            </button>
           </div>
           {isTorn && (
             // ポイが破れて操作不能になった（issue #79）ことが見た目（マーカー画像の
@@ -117,10 +153,10 @@ function App() {
             タイム: {formatElapsedTime(elapsedMs)}
           </p>
         </div>
-        <Poi onScoop={handleScoop} isTorn={isTorn} />
-        <div className="bg-white bg-opacity-75 rounded-3 p-3 mt-3">
-          <h2 className="fs-6 fw-bold mb-2">ランキング</h2>
-          <RankingList entries={ranking} />
+        {/* ポイ操作エリアの高さは残り領域いっぱいに可変とし、画面全体を100dvh内に収めて
+            縦スクロールを発生させない（issue #101） */}
+        <div className="flex-grow-1" style={{ minHeight: 0 }}>
+          <Poi onScoop={handleScoop} isTorn={isTorn} />
         </div>
       </main>
     </>

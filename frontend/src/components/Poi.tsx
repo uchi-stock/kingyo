@@ -80,8 +80,8 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
   return (
     <div
       ref={pondRef}
-      className="position-relative rounded-3 overflow-hidden border border-2 border-white"
-      style={{ height: '60vh', touchAction: 'none' }}
+      className="position-relative rounded-3 overflow-hidden border border-2 border-white h-100"
+      style={{ touchAction: 'none' }}
       onPointerDown={showManualControl ? handlePointerInput : undefined}
       onPointerMove={showManualControl ? handlePointerInput : undefined}
       data-testid="pond"
