@@ -48,6 +48,28 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
     setPositionFromPointer(xPercent, yPercent)
   }
 
+  // 加速度センサーが使えない環境（showManualControl）では、傾きのフリック操作による
+  // 掬うジェスチャー検出（usePoiMotion側）が機能しないため、画面（pond領域）への
+  // タップ（指を離した瞬間）を「掬う」ジェスチャーとして扱う（issue #124）。
+  // pointerdownではなくpointerupをトリガーにするのは、ドラッグでポイを位置合わせ
+  // する操作（onPointerDown/onPointerMoveでhandlePointerInputを呼ぶ既存の操作）と
+  // 「その位置で掬う」操作を、タップ開始ではなく完了時点で区別するため。
+  // 勢い（ScoopIntensity）の区別は行わず、常に'gentle'として扱う。ポイが破れている
+  // 場合は、センサー操作時の掬うジェスチャー検出と同様に無効にする（issue #79と同様の扱い）
+  const handleManualScoop = (event: ReactPointerEvent<HTMLDivElement>) => {
+    handlePointerInput(event)
+    if (isTorn || !onScoop) {
+      return
+    }
+    onScoop(
+      {
+        xVw: (event.clientX / window.innerWidth) * 100,
+        yVh: (event.clientY / window.innerHeight) * 100,
+      },
+      'gentle',
+    )
+  }
+
   const offsetXPx = ((pose.xPercent - 50) / 100) * pondSize.width
   const offsetYPx = ((pose.yPercent - 50) / 100) * pondSize.height
 
@@ -84,6 +106,7 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
       style={{ touchAction: 'none' }}
       onPointerDown={showManualControl ? handlePointerInput : undefined}
       onPointerMove={showManualControl ? handlePointerInput : undefined}
+      onPointerUp={showManualControl ? handleManualScoop : undefined}
       data-testid="pond"
     >
       {isTorn ? (

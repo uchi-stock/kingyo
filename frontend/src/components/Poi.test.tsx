@@ -309,6 +309,59 @@ describe('Poi', () => {
     expect(marker.style.transform).toContain('translate(0px, -25px)')
   })
 
+  it('フォールバック操作時、画面をタップ（指を離した瞬間）すると掬うジェスチャーとしてonScoopが呼び出される（issue #124）', () => {
+    // @ts-expect-error センサーAPIが存在しない環境を再現し、フォールバック操作を有効にする
+    delete window.DeviceMotionEvent
+    mockPointerBounds()
+    mockPondSize(200, 100)
+    const onScoop = vi.fn()
+
+    render(<Poi onScoop={onScoop} />)
+    const pond = screen.getByTestId('pond')
+
+    fireEvent.pointerDown(pond, { clientX: 100, clientY: 25 })
+    // pointerdown単体では掬うジェスチャーは発生しない（位置合わせのドラッグ操作と
+    // 区別するため、トリガーはpointerup）
+    expect(onScoop).not.toHaveBeenCalled()
+
+    fireEvent.pointerUp(pond, { clientX: 100, clientY: 25 })
+
+    expect(onScoop).toHaveBeenCalledTimes(1)
+    // フォールバック時は勢いの区別を行わず、常にgentleとして渡す（issue #124）
+    expect(onScoop.mock.calls[0][1]).toBe('gentle')
+  })
+
+  it('通常時（センサー操作時）は、画面をタップしても掬うジェスチャーは発生しない（issue #124）', () => {
+    // jsdomはDeviceMotionEventをrequestPermissionなしのスタブとして持つため、デフォルトでgranted扱いになる
+    mockPointerBounds()
+    mockPondSize(200, 100)
+    const onScoop = vi.fn()
+
+    render(<Poi onScoop={onScoop} />)
+    const pond = screen.getByTestId('pond')
+
+    fireEvent.pointerDown(pond, { clientX: 100, clientY: 25 })
+    fireEvent.pointerUp(pond, { clientX: 100, clientY: 25 })
+
+    expect(onScoop).not.toHaveBeenCalled()
+  })
+
+  it('フォールバック操作時、ポイが破れている場合はタップしても掬うジェスチャーは発生しない（issue #79, #124）', () => {
+    // @ts-expect-error センサーAPIが存在しない環境を再現し、フォールバック操作を有効にする
+    delete window.DeviceMotionEvent
+    mockPointerBounds()
+    mockPondSize(200, 100)
+    const onScoop = vi.fn()
+
+    render(<Poi onScoop={onScoop} isTorn />)
+    const pond = screen.getByTestId('pond')
+
+    fireEvent.pointerDown(pond, { clientX: 100, clientY: 25 })
+    fireEvent.pointerUp(pond, { clientX: 100, clientY: 25 })
+
+    expect(onScoop).not.toHaveBeenCalled()
+  })
+
   it('ポイが破れている場合、devicemotionによる位置更新を受け付けない（issue #79）', async () => {
     mockPondSize(200, 100)
     render(<Poi isTorn />)
