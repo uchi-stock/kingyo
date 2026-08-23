@@ -1,3 +1,10 @@
+# [1.26.0](https://github.com/uchi-stock/kingyo/compare/v1.25.0...v1.26.0) (2026-08-23)
+
+
+### Features
+
+* PWA向けアイコン・faviconに金魚画像を使う ([#98](https://github.com/uchi-stock/kingyo/issues/98)) ([cbc04ea](https://github.com/uchi-stock/kingyo/commit/cbc04eadf76d0712a59838459f61753eb7aed82f)), closes [#97](https://github.com/uchi-stock/kingyo/issues/97)
+
 # [1.25.0](https://github.com/uchi-stock/kingyo/compare/v1.24.0...v1.25.0) (2026-08-22)
 
 
