@@ -1,3 +1,10 @@
+## [1.34.5](https://github.com/uchi-stock/kingyo/compare/v1.34.4...v1.34.5) (2026-08-23)
+
+
+### Bug Fixes
+
+* デプロイジョブがリリースコミット後の最新mainをチェックアウトするようにする（issue [#127](https://github.com/uchi-stock/kingyo/issues/127)） ([#129](https://github.com/uchi-stock/kingyo/issues/129)) ([f363852](https://github.com/uchi-stock/kingyo/commit/f363852a89a7ebddc351c3c610f944ee3eb61af9))
+
 ## [1.34.4](https://github.com/uchi-stock/kingyo/compare/v1.34.3...v1.34.4) (2026-08-23)
 
 
