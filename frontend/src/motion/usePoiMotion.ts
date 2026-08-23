@@ -45,11 +45,18 @@ export interface PoiPose {
 
 export interface PoiDebugInfo {
   motionEventCount: number
+  // deviceorientationイベントの受信数。motionEventCountと分けて数えることで、
+  // 「向きは届くが加速度は届かない」等の切り分けができる（issue #109）
+  orientationEventCount: number
   lastAcceleration: Acceleration2D
   scoopCount: number
   // 直近に検出された掬うジェスチャーの勢い。scoopCountとあわせて更新される（issue #82）
   lastScoopIntensity: ScoopIntensity | null
   rotationSuppressed: boolean
+  // requestPermission()が実際に解決した値（'granted'/'denied'）、または例外メッセージ。
+  // 許可ダイアログ自体が一切表示されないという実機報告（issue #109）の原因切り分け用に、
+  // requestPermission()の呼び出し結果をそのまま可視化する
+  lastPermissionResult: string | null
 }
 
 export interface UsePoiMotionResult {
@@ -73,7 +80,11 @@ export function usePoiMotion(isTorn = false): UsePoiMotionResult {
   const smoothedAccelerationRef = useRef<Acceleration2D>({ x: 0, y: 0 })
   const gravityEstimateRef = useRef<Acceleration2D>({ x: 0, y: 0 })
   const motionEventCountRef = useRef(0)
-  const [debug, setDebug] = useState<Omit<PoiDebugInfo, 'scoopCount' | 'lastScoopIntensity' | 'rotationSuppressed'>>({
+  const orientationEventCountRef = useRef(0)
+  const [orientationEventCount, setOrientationEventCount] = useState(0)
+  const [debug, setDebug] = useState<
+    Omit<PoiDebugInfo, 'scoopCount' | 'lastScoopIntensity' | 'rotationSuppressed' | 'orientationEventCount' | 'lastPermissionResult'>
+  >({
     motionEventCount: 0,
     lastAcceleration: { x: 0, y: 0 },
   })
@@ -82,6 +93,7 @@ export function usePoiMotion(isTorn = false): UsePoiMotionResult {
   const rotationSuppressionHoldMsRef = useRef(0)
   const rotationSuppressedRef = useRef(false)
   const [rotationSuppressed, setRotationSuppressed] = useState(false)
+  const [lastPermissionResult, setLastPermissionResult] = useState<string | null>(null)
 
   // 角度表現・掬うジェスチャーの検出は位置操作の許可状態に関わらず、購読できる範囲で常時反映する
   useEffect(() => {
@@ -90,6 +102,11 @@ export function usePoiMotion(isTorn = false): UsePoiMotionResult {
     let cooldownMs = 0
 
     const handleOrientation = (event: DeviceOrientationEvent) => {
+      // ポイが破れているかどうかに関わらず、イベント自体が届いているかは常に数える
+      // （issue #109: 実機でセンサーが一切反応しないという報告の原因切り分け用）
+      orientationEventCountRef.current += 1
+      setOrientationEventCount(orientationEventCountRef.current)
+
       // ポイが破れた後は、角度更新・掬うジェスチャー検出のいずれも行わず、
       // 破れた瞬間の角度のまま固定する（issue #79）
       if (isTorn) {
@@ -222,13 +239,16 @@ export function usePoiMotion(isTorn = false): UsePoiMotionResult {
     }
 
     if (!motionPermissionPromise) {
+      setLastPermissionResult('requestPermission未定義のため即granted扱い')
       setPermission('granted')
       return
     }
     try {
       const result = await motionPermissionPromise
+      setLastPermissionResult(result)
       setPermission(result === 'granted' ? 'granted' : 'denied')
-    } catch {
+    } catch (error) {
+      setLastPermissionResult(`例外: ${error instanceof Error ? error.message : String(error)}`)
       setPermission('denied')
     }
   }, [])
@@ -264,7 +284,7 @@ export function usePoiMotion(isTorn = false): UsePoiMotionResult {
   return {
     permission,
     pose: { xPercent: motionState.xPercent, yPercent: motionState.yPercent, angleDeg },
-    debug: { ...debug, scoopCount, lastScoopIntensity, rotationSuppressed },
+    debug: { ...debug, orientationEventCount, scoopCount, lastScoopIntensity, rotationSuppressed, lastPermissionResult },
     requestPermission,
     setPositionFromPointer,
   }
