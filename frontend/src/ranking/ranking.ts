@@ -5,11 +5,13 @@ export interface RankingEntry {
   recordedAt: string
 }
 
-const STORAGE_KEY = 'kingyo-ranking'
-const MAX_ENTRIES = 10 // 保持する記録の上限件数
+// 全員共通のランキングをバックエンドAPI（issue #110, #112）で永続化する。
+// localStorageのみで永続化していた旧実装（issue #89, #99）は、iOSでホーム画面の
+// アイコンを削除→再追加すると保存領域が作り直され記録が失われる問題があった（issue #110）
+const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? ''
 
-function isLocalStorageAvailable(): boolean {
-  return typeof localStorage !== 'undefined'
+function apiUrl(path: string): string {
+  return `${API_BASE_URL}${path}`
 }
 
 function isRankingEntry(value: unknown): value is RankingEntry {
@@ -22,44 +24,42 @@ function isRankingEntry(value: unknown): value is RankingEntry {
   )
 }
 
-// localStorageから記録一覧を読み込む。localStorageが使えない環境（テスト環境等）や、
-// 保存内容が壊れている場合は空配列を返し、機能全体には影響させない
-export function loadRanking(): RankingEntry[] {
-  if (!isLocalStorageAvailable()) {
-    return []
-  }
+// バックエンドAPI（GET /ranking）から記録一覧を読み込む。ネットワーク障害・APIの
+// 不調・不正なレスポンス形式の場合は空配列を返し、ゲーム自体はプレイできるようにする
+export async function loadRanking(): Promise<RankingEntry[]> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) {
+    const response = await fetch(apiUrl('/ranking'))
+    if (!response.ok) {
       return []
     }
-    const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) {
-      return []
-    }
-    return parsed.filter(isRankingEntry)
+    const data: unknown = await response.json()
+    return Array.isArray(data) ? data.filter(isRankingEntry) : []
   } catch {
     return []
   }
 }
 
-// 新しい記録を追加し、記録時間の降順（長く遊べたほど上位）に並べ替えた上で
-// 上位MAX_ENTRIES件のみを保存する。ポイが破れてタイマーが停止した時点で呼ぶ想定。
-// catchCountはそれまでに捕獲できた金魚の数（issue #99）
-export function addRankingEntry(timeMs: number, catchCount: number): RankingEntry[] {
-  const entries = loadRanking()
-  entries.push({ timeMs, catchCount, recordedAt: new Date().toISOString() })
-  entries.sort((a, b) => b.timeMs - a.timeMs)
-  const trimmed = entries.slice(0, MAX_ENTRIES)
-
-  if (isLocalStorageAvailable()) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed))
-    } catch {
-      // ストレージ容量超過等で保存に失敗しても、今回のプレイ自体には影響させない
+// 新しい記録をバックエンドAPI（POST /ranking）へ追加し、更新後のランキング
+// （記録時間の降順・上位10件、並び替え・切り詰めはサーバー側で行う）を返す。
+// ポイが破れてタイマーが停止した時点で呼ぶ想定。catchCountはそれまでに捕獲できた
+// 金魚の数（issue #99）。API呼び出しに失敗した場合はnullを返す。呼び出し側
+// （App.tsx）はこの場合、直前の表示済みランキングをそのまま保持する（ゲームの
+// 進行自体は妨げない。issue #110）
+export async function addRankingEntry(timeMs: number, catchCount: number): Promise<RankingEntry[] | null> {
+  try {
+    const response = await fetch(apiUrl('/ranking'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timeMs, catchCount }),
+    })
+    if (!response.ok) {
+      return null
     }
+    const data: unknown = await response.json()
+    return Array.isArray(data) && data.every(isRankingEntry) ? data : null
+  } catch {
+    return null
   }
-  return trimmed
 }
 
 // 経過時間（ミリ秒）を"mm:ss.s"形式の文字列にする

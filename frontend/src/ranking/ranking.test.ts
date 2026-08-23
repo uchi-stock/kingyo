@@ -1,61 +1,42 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { addRankingEntry, formatElapsedTime, loadRanking } from './ranking'
 
-const STORAGE_KEY = 'kingyo-ranking'
+// fetchをモックし、実際のバックエンドAPIへは一切通信しない
+function mockFetch(handler: (input: string, init?: RequestInit) => Promise<Response> | Response) {
+  const fetchMock = vi.fn(handler)
+  vi.stubGlobal('fetch', fetchMock)
+  return fetchMock
+}
 
-describe('loadRanking / addRankingEntry', () => {
+function jsonResponse(body: unknown, init?: { ok?: boolean }): Response {
+  return {
+    ok: init?.ok ?? true,
+    json: () => Promise.resolve(body),
+  } as Response
+}
+
+describe('loadRanking', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
-    localStorage.clear()
     vi.restoreAllMocks()
   })
 
-  it('記録が無い場合は空配列を返す', () => {
-    expect(loadRanking()).toEqual([])
+  it('GET /rankingの結果をそのまま返す', async () => {
+    const entries = [{ timeMs: 12345, catchCount: 3, recordedAt: '2026-01-01T00:00:00.000Z' }]
+    const fetchMock = mockFetch(() => jsonResponse(entries))
+
+    expect(await loadRanking()).toEqual(entries)
+    expect(fetchMock).toHaveBeenCalledWith('/ranking')
   })
 
-  it('記録を追加すると、localStorageに保存されて読み込める', () => {
-    addRankingEntry(12345, 3)
-    const entries = loadRanking()
-    expect(entries).toHaveLength(1)
-    expect(entries[0].timeMs).toBe(12345)
-    expect(entries[0].catchCount).toBe(3)
-    expect(typeof entries[0].recordedAt).toBe('string')
+  it('レスポンスが配列でない場合は空配列を返す', async () => {
+    mockFetch(() => jsonResponse({ not: 'an array' }))
+    expect(await loadRanking()).toEqual([])
   })
 
-  it('記録時間が長い順（降順）に並べ替えられる', () => {
-    addRankingEntry(1000, 1)
-    addRankingEntry(3000, 3)
-    addRankingEntry(2000, 2)
-    const entries = loadRanking()
-    expect(entries.map((entry) => entry.timeMs)).toEqual([3000, 2000, 1000])
-    expect(entries.map((entry) => entry.catchCount)).toEqual([3, 2, 1])
-  })
-
-  it('上位10件を超える記録は切り捨てられる', () => {
-    for (let i = 0; i < 12; i += 1) {
-      addRankingEntry(i, i)
-    }
-    const entries = loadRanking()
-    expect(entries).toHaveLength(10)
-    // 上位10件は11, 10, 9, ..., 2（降順）のはず
-    expect(entries.map((entry) => entry.timeMs)).toEqual([11, 10, 9, 8, 7, 6, 5, 4, 3, 2])
-  })
-
-  it('保存内容が壊れている（JSONとして不正）場合は空配列を返す', () => {
-    localStorage.setItem(STORAGE_KEY, '不正なJSON')
-    expect(loadRanking()).toEqual([])
-  })
-
-  it('保存内容が配列でない場合は空配列を返す', () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ not: 'an array' }))
-    expect(loadRanking()).toEqual([])
-  })
-
-  it('配列内に不正な要素が混ざっている場合、その要素だけ除外する', () => {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify([
+  it('配列内に不正な要素が混ざっている場合、その要素だけ除外する', async () => {
+    mockFetch(() =>
+      jsonResponse([
         { timeMs: 100, catchCount: 2, recordedAt: '2026-01-01T00:00:00.000Z' },
         { invalid: true },
         // catchCountが欠けている旧形式のデータ（issue #99以前）も不正な要素として除外する
@@ -64,15 +45,51 @@ describe('loadRanking / addRankingEntry', () => {
         42,
       ]),
     )
-    const entries = loadRanking()
-    expect(entries).toEqual([{ timeMs: 100, catchCount: 2, recordedAt: '2026-01-01T00:00:00.000Z' }])
+    expect(await loadRanking()).toEqual([{ timeMs: 100, catchCount: 2, recordedAt: '2026-01-01T00:00:00.000Z' }])
   })
 
-  it('localStorageが利用できない環境でも例外を投げない', () => {
-    vi.stubGlobal('localStorage', undefined)
-    expect(() => loadRanking()).not.toThrow()
-    expect(loadRanking()).toEqual([])
-    expect(() => addRankingEntry(100, 1)).not.toThrow()
+  it('レスポンスがエラー（okでない）場合は空配列を返す', async () => {
+    mockFetch(() => jsonResponse([], { ok: false }))
+    expect(await loadRanking()).toEqual([])
+  })
+
+  it('ネットワークエラー等でfetch自体が失敗しても例外を投げず、空配列を返す', async () => {
+    mockFetch(() => Promise.reject(new Error('network error')))
+    await expect(loadRanking()).resolves.toEqual([])
+  })
+})
+
+describe('addRankingEntry', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('POST /rankingへtimeMs・catchCountを送信し、レスポンスの一覧をそのまま返す', async () => {
+    const entries = [{ timeMs: 12345, catchCount: 3, recordedAt: '2026-01-01T00:00:00.000Z' }]
+    const fetchMock = mockFetch(() => jsonResponse(entries))
+
+    expect(await addRankingEntry(12345, 3)).toEqual(entries)
+    expect(fetchMock).toHaveBeenCalledWith('/ranking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timeMs: 12345, catchCount: 3 }),
+    })
+  })
+
+  it('レスポンスがエラー（okでない）場合はnullを返す', async () => {
+    mockFetch(() => jsonResponse([], { ok: false }))
+    expect(await addRankingEntry(100, 1)).toBeNull()
+  })
+
+  it('レスポンスが配列でない場合はnullを返す', async () => {
+    mockFetch(() => jsonResponse({ message: 'エラー' }))
+    expect(await addRankingEntry(100, 1)).toBeNull()
+  })
+
+  it('ネットワークエラー等でfetch自体が失敗しても例外を投げず、nullを返す（ゲームの進行は妨げない）', async () => {
+    mockFetch(() => Promise.reject(new Error('network error')))
+    await expect(addRankingEntry(100, 1)).resolves.toBeNull()
   })
 })
 
