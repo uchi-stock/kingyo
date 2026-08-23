@@ -24,6 +24,7 @@ const RANDOM_TURN_MAX_INTERVAL_MS = 8000
 const FLEE_SPEED_MULTIPLIER = 3 // 逃走中は通常の何倍の速さで泳ぐか
 const FLEE_DURATION_MS = 1500 // 逃走が続く時間
 const COLLISION_AVOIDANCE_RADIUS_PERCENT = 10 // 他の金魚がこの距離未満に近づくと回避行動を取る（issue #122）
+const COLLISION_AVOIDANCE_TURN_RATE_DEG_PER_SEC = 90 // 回避時の方向転換の速さの上限。大袈裟な急旋回に見えないようにする（issue #122）
 
 function normalizeDeg(deg: number): number {
   return ((deg % 360) + 360) % 360
@@ -111,8 +112,11 @@ export function startFleeing(state: GoldfishState, threatPosition: ThreatPositio
 // 逃走中（fleeCountdownMs > 0）は、startFleetingで設定された進行方向を保ったまま
 // （ランダムな方向転換は行わない）通常のFLEE_SPEED_MULTIPLIER倍の速さで泳ぐ。
 // 壁に当たった場合の転回は逃走中も通常通り機能する（issue #53）。
-// othersに他の金魚の位置を渡すと、近くにいる金魚から遠ざかる方向へ優先的に進行方向を
-// 変える（issue #122）。逃走中は、脅威（ポイ）から逃げる方向を優先するため対象外とする
+// othersに他の金魚の位置を渡すと、近くにいる金魚から遠ざかる方向へ進行方向を変える
+// （issue #122）。壁での転回・ランダムな方向転換とは異なり瞬時には反映せず、
+// COLLISION_AVOIDANCE_TURN_RATE_DEG_PER_SECを上限に少しずつ回頭する（大袈裟な
+// 急旋回に見えないようにするため）。逃走中は、脅威（ポイ）から逃げる方向を
+// 優先するため対象外とする
 export function stepGoldfish(
   state: GoldfishState,
   dtSeconds: number,
@@ -136,7 +140,10 @@ export function stepGoldfish(
   if (!isFleeing) {
     const avoidanceHeadingDeg = computeAvoidanceHeadingDeg(state, others)
     if (avoidanceHeadingDeg !== null) {
-      baseHeading = avoidanceHeadingDeg
+      const diff = angleDiffDeg(avoidanceHeadingDeg, baseHeading)
+      const maxTurnDeg = COLLISION_AVOIDANCE_TURN_RATE_DEG_PER_SEC * dtSeconds
+      const clampedDiff = Math.max(-maxTurnDeg, Math.min(maxTurnDeg, diff))
+      baseHeading = normalizeDeg(baseHeading + clampedDiff)
     }
   }
 

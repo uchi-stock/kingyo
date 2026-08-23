@@ -170,7 +170,7 @@ describe('stepGoldfish', () => {
     expect(next.headingDeg).toBe(0)
   })
 
-  it('近くに他の金魚がいる場合、その金魚から遠ざかる方向へ進行方向を変える（issue #122）', () => {
+  it('近くに他の金魚がいる場合、その金魚から遠ざかる方向へ、旋回速度の上限を超えない範囲で少しずつ進行方向を変える（issue #122）', () => {
     const state = {
       xPercent: 50,
       yPercent: 50,
@@ -179,10 +179,30 @@ describe('stepGoldfish', () => {
       turnCountdownMs: 10000,
       fleeCountdownMs: 0,
     }
-    // 右側（xPercent+5）に他の金魚がいる場合、左方向（180度）へ遠ざかるはず
-    const next = stepGoldfish(state, 0.016, 0, 0, midRandom, [{ xPercent: 55, yPercent: 50 }])
+    // 右側（xPercent+5）に他の金魚がいる場合、左方向（180度）へ遠ざかろうとするが、
+    // 旋回速度の上限（90度/秒）により、1フレーム（dt=0.1秒）での変化は9度分に留まり、
+    // 瞬時に180度へ反転するような大袈裟な動きにはならない（正確に真後ろ＝180度の
+    // 場合、回頭方向の符号は実装上一意に決まり、この場合は-9度＝351度になる）
+    const next = stepGoldfish(state, 0.1, 0, 0, midRandom, [{ xPercent: 55, yPercent: 50 }])
 
-    expect(next.headingDeg).toBeCloseTo(180, 0)
+    expect(next.headingDeg).toBeCloseTo(351, 0)
+  })
+
+  it('近くに他の金魚がいる状態が続くと、遠ざかる方向へ時間をかけて収束する（issue #122）', () => {
+    let state = {
+      xPercent: 50,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
+    for (let i = 0; i < 50; i += 1) {
+      // 毎フレーム、常に右側5%の位置に他の金魚がいる状況を再現する
+      const others = [{ xPercent: state.xPercent + 5, yPercent: state.yPercent }]
+      state = stepGoldfish(state, 0.1, i * 100, 0, midRandom, others)
+    }
+    expect(state.headingDeg).toBeCloseTo(180, 0)
   })
 
   it('他の金魚が回避半径の外にいる場合は、進行方向を変えない（issue #122）', () => {
