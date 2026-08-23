@@ -1,3 +1,10 @@
+# [1.33.0](https://github.com/uchi-stock/kingyo/compare/v1.32.0...v1.33.0) (2026-08-23)
+
+
+### Features
+
+* ranking.tsをlocalStorageからバックエンドAPI呼び出しへ切り替え ([#118](https://github.com/uchi-stock/kingyo/issues/118)) ([d0b3e81](https://github.com/uchi-stock/kingyo/commit/d0b3e81f6f68f18fbcfd5fc78f558d51b0594dac)), closes [#89](https://github.com/uchi-stock/kingyo/issues/89) [#93](https://github.com/uchi-stock/kingyo/issues/93) [#114](https://github.com/uchi-stock/kingyo/issues/114)
+
 # [1.32.0](https://github.com/uchi-stock/kingyo/compare/v1.31.0...v1.32.0) (2026-08-23)
 
 
