@@ -15,7 +15,7 @@ export interface PoiProps {
 }
 
 function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
-  const { permission, pose, debug, requestPermission, setPositionFromPointer } = usePoiMotion(isTorn)
+  const { permission, pose, debug, setPositionFromPointer } = usePoiMotion(isTorn)
   const pondRef = useRef<HTMLDivElement>(null)
   const [pondSize, setPondSize] = useState({ width: 0, height: 0 })
   const showManualControl = permission === 'denied' || permission === 'unsupported'
@@ -116,27 +116,27 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
         />
       )}
 
-      {permission === 'unknown' && (
-        // 画面への最初のタップを許可リクエストのトリガーとする実装（issue #63）だけでは、
-        // 何らかの理由でそのタップが検出されなかった場合にユーザーへ手がかりが一切示されず
-        // 「センサーが反応しない」まま気づけない不具合が実機で報告された（issue #109）。
-        // 明示的なボタンを併設し、確実に許可ダイアログを呼び出せる手段を残す
-        <button
-          type="button"
-          className="btn btn-primary position-absolute top-50 start-50 translate-middle"
-          onClick={() => {
-            void requestPermission()
-          }}
-        >
-          センサーを有効にする
-        </button>
-      )}
-
       {showManualControl && (
-        <p className="position-absolute bottom-0 start-0 m-2 text-body-secondary small">
+        // 池の背景（カメラ映像等）に対して文字色が暗く視認しにくいという実機報告があったため、
+        // デバッグ表示（下記）と同様に白字＋半透明の暗色背景にして視認性を確保する（issue #109）
+        <p className="position-absolute bottom-0 start-0 m-2 text-white bg-dark bg-opacity-50 rounded px-2 py-1 small">
           加速度センサーが利用できないため、画面をなぞってポイを操作してください
         </p>
       )}
+
+      {/* センサーが実機で反応しないという報告（issue #109）の原因切り分け用の一時的な
+          デバッグ表示。「センサーを有効にする」ボタン（issue #109で一度追加）は実機で
+          押しても許可ダイアログ自体が出ないことが判明したため撤去し、代わりに
+          許可状態・イベント受信数を可視化して原因調査を進める */}
+      <p
+        className="position-absolute top-0 start-0 m-2 text-white bg-dark bg-opacity-50 rounded px-2 py-1 small"
+        style={{ fontFamily: 'monospace' }}
+        data-testid="poi-debug"
+      >
+        許可: {permission} / 向き受信: {debug.orientationEventCount} / 加速度受信: {debug.motionEventCount} / 加速度: (
+        {debug.lastAcceleration.x.toFixed(2)}, {debug.lastAcceleration.y.toFixed(2)}) / 許可結果:{' '}
+        {debug.lastPermissionResult ?? '-'}
+      </p>
     </div>
   )
 }

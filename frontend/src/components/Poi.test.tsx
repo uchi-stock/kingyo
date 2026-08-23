@@ -36,11 +36,10 @@ describe('Poi', () => {
     delete window.DeviceOrientationEvent.requestPermission
   })
 
-  it('requestPermissionを持たない環境（Android等）では、許可ボタンなしでモーションセンサーの値をポイの位置に反映する', async () => {
+  it('requestPermissionを持たない環境（Android等）では、モーションセンサーの値をポイの位置に反映する', async () => {
     // jsdomはDeviceMotionEventをrequestPermissionなしのスタブとして持つため、デフォルトでgranted扱いになる
     mockPondSize(200, 100)
     render(<Poi />)
-    expect(screen.queryByRole('button', { name: 'センサーを有効にする' })).not.toBeInTheDocument()
     expect(
       screen.queryByText('加速度センサーが利用できないため、画面をなぞってポイを操作してください'),
     ).not.toBeInTheDocument()
@@ -76,7 +75,6 @@ describe('Poi', () => {
     delete window.DeviceMotionEvent
 
     render(<Poi />)
-    expect(screen.queryByRole('button', { name: 'センサーを有効にする' })).not.toBeInTheDocument()
     expect(
       screen.getByText('加速度センサーが利用できないため、画面をなぞってポイを操作してください'),
     ).toBeInTheDocument()
@@ -98,25 +96,31 @@ describe('Poi', () => {
     })
   })
 
-  it('iOSのようにrequestPermissionが必要な場合、明示的な「センサーを有効にする」ボタンも表示され、押すと許可リクエストが呼ばれる（issue #109）', async () => {
-    // 画面への最初のタップ（issue #63）が何らかの理由で許可リクエストのトリガーとして
-    // 機能しなかった場合に備え、確実に許可ダイアログを呼び出せる手段を残す（issue #109:
-    // 実機で「タップしても許可ダイアログが一度も出ず、案内文も出ないためセンサーが
-    // 反応しないまま気づけない」という報告があった）
+  it('デバッグ表示に、許可状態・受信イベント数・許可リクエストの結果が表示される（issue #109）', async () => {
+    // 実機で「タップしても許可ダイアログが一切出ず、案内文も出ないためセンサーが
+    // 反応しない理由が分からない」という報告があった。原因切り分けのため、
+    // 許可状態・イベント受信数・requestPermission()の結果を画面上に可視化する
     const requestPermission = vi.fn().mockResolvedValue('granted')
     // @ts-expect-error テスト用にDeviceMotionEventをモックする
     window.DeviceMotionEvent = function DeviceMotionEvent() {}
     // @ts-expect-error テスト用にDeviceMotionEventをモックする
     window.DeviceMotionEvent.requestPermission = requestPermission
+    mockPondSize(200, 100)
 
     render(<Poi />)
-    const button = screen.getByRole('button', { name: 'センサーを有効にする' })
+    expect(screen.getByTestId('poi-debug')).toHaveTextContent('許可: unknown')
+    expect(screen.getByTestId('poi-debug')).toHaveTextContent('向き受信: 0')
 
-    fireEvent.click(button)
-
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 10 }))
     await waitFor(() => {
-      expect(requestPermission).toHaveBeenCalledTimes(1)
+      expect(screen.getByTestId('poi-debug')).toHaveTextContent('向き受信: 1')
     })
+
+    fireEvent.pointerDown(window)
+    await waitFor(() => {
+      expect(screen.getByTestId('poi-debug')).toHaveTextContent('許可結果: granted')
+    })
+    expect(screen.getByTestId('poi-debug')).toHaveTextContent('許可: granted')
   })
 
   it('許可が拒否された場合、フォールバック操作の案内が表示される', async () => {
