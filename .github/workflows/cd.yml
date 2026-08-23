@@ -43,11 +43,12 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
+      # npm workspaces構成（issue #111）のため、依存インストールはリポジトリルートで
+      # 行う（frontend単体にはpackage-lock.jsonが存在しない）
       - name: Build frontend
-        working-directory: frontend
         run: |
           npm ci
-          npm run build
+          npm run build --workspace frontend
 
       - name: Resolve stack outputs
         id: stack

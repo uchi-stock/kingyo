@@ -9,7 +9,8 @@ jobs:
   ci:
     uses: bamiyanapp/dev-standards/.github/workflows/reusable-ci.yml@v2.4.0
     with:
-      packages: '[{"dir":"frontend","build":true,"node_version":22}]'
+      workspaces: true
+      node_version: 22
       skip_verification_on_push: true
       # frontend/src配下でdev-standards submoduleのshared/ui/*.cssをsymlink共有している
       # ため（sync-manifest.local.json）、CIのcheckoutでsubmoduleを取得する必要がある

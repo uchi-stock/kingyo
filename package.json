@@ -2,6 +2,7 @@
   "name": "kingyo",
   "private": true,
   "version": "1.30.0",
+  "workspaces": ["frontend", "backend"],
   "devDependencies": {
     "@commitlint/cli": "^21.0.0",
     "@commitlint/config-conventional": "^21.0.0",
