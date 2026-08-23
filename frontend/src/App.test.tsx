@@ -213,6 +213,65 @@ describe('App', () => {
     });
   });
 
+  it('ポイの中心で金魚を捕獲して破れると、バイブレーションが発生する（issue #103）', async () => {
+    setUpMatchingPondAndViewport();
+    const vibrate = vi.fn();
+    Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true });
+
+    let now = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    render(<App />);
+    const pond = screen.getByTestId('pond');
+
+    // 1匹目の金魚（id=0）の真上（距離0）にポイを合わせ、中心での捕獲＝破れを再現する
+    const fish0 = goldfishInitialPosition(0);
+    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent, fish0.yPercent));
+
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('poi-marker').tagName).toBe('IMG');
+    });
+    expect(vibrate).toHaveBeenCalledTimes(1);
+
+    // @ts-expect-error テストで追加したvibrateプロパティを元に戻す
+    delete navigator.vibrate;
+  });
+
+  it('勢いよく掬ってポイが破れた場合も、バイブレーションが発生する（issue #103）', async () => {
+    setUpMatchingPondAndViewport();
+    const vibrate = vi.fn();
+    Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true });
+
+    let now = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    render(<App />);
+    const pond = screen.getByTestId('pond');
+
+    // 1匹目の金魚（id=0）の真上（距離0）にポイを合わせる
+    const { xPercent, yPercent } = goldfishInitialPosition(0);
+    fireEvent.pointerDown(pond, pointerAt(xPercent, yPercent));
+
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    // 50ms経過でbetaが300度変化 = 6000度/秒（勢いの閾値600度/秒を超える「勢いのよい」掬い）
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 300 }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('poi-marker').getAttribute('src')).toContain('poi-torn');
+    });
+    expect(vibrate).toHaveBeenCalledTimes(1);
+
+    // @ts-expect-error テストで追加したvibrateプロパティを元に戻す
+    delete navigator.vibrate;
+  });
+
   it('掬いに失敗すると、範囲内の最も近い金魚がポイから離れる方向へ加速して逃げる（issue #53）', async () => {
     setUpMatchingPondAndViewport();
 
