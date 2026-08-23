@@ -1,3 +1,10 @@
+## [1.35.1](https://github.com/uchi-stock/kingyo/compare/v1.35.0...v1.35.1) (2026-08-23)
+
+
+### Bug Fixes
+
+* 金魚の衝突回避時の方向転換に旋回速度の上限を設ける（issue [#122](https://github.com/uchi-stock/kingyo/issues/122)） ([#131](https://github.com/uchi-stock/kingyo/issues/131)) ([9056cfb](https://github.com/uchi-stock/kingyo/commit/9056cfb028d7aa81c7bd4c8c5924c0e6bc6b316b))
+
 # [1.35.0](https://github.com/uchi-stock/kingyo/compare/v1.34.5...v1.35.0) (2026-08-23)
 
 
