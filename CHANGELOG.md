@@ -1,3 +1,10 @@
+## [1.34.4](https://github.com/uchi-stock/kingyo/compare/v1.34.3...v1.34.4) (2026-08-23)
+
+
+### Bug Fixes
+
+* 診断表示を目立たない黒字に変更し、許可トリガーの回帰テストを追加する ([#128](https://github.com/uchi-stock/kingyo/issues/128)) ([4c84090](https://github.com/uchi-stock/kingyo/commit/4c840908e1f8062641a312d8fa960457e70a3f87))
+
 ## [1.34.3](https://github.com/uchi-stock/kingyo/compare/v1.34.2...v1.34.3) (2026-08-23)
 
 
