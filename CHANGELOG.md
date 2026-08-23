@@ -1,3 +1,10 @@
+## [1.34.3](https://github.com/uchi-stock/kingyo/compare/v1.34.2...v1.34.3) (2026-08-23)
+
+
+### Bug Fixes
+
+* 許可リクエストのトリガーをpointerdownからclickへ変更する（issue [#109](https://github.com/uchi-stock/kingyo/issues/109)） ([#125](https://github.com/uchi-stock/kingyo/issues/125)) ([26b20f0](https://github.com/uchi-stock/kingyo/commit/26b20f03d001274815dcd86250b90f63cbcfe66c))
+
 ## [1.34.2](https://github.com/uchi-stock/kingyo/compare/v1.34.1...v1.34.2) (2026-08-23)
 
 
