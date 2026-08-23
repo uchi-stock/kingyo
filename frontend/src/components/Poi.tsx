@@ -124,12 +124,13 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
         </p>
       )}
 
-      {/* センサーが実機で反応しないという報告（issue #109）の原因切り分け用の一時的な
-          デバッグ表示。「センサーを有効にする」ボタン（issue #109で一度追加）は実機で
-          押しても許可ダイアログ自体が出ないことが判明したため撤去し、代わりに
-          許可状態・イベント受信数を可視化して原因調査を進める */}
+      {/* センサーが実機で反応しないという報告（issue #109）の原因切り分け用のデバッグ表示。
+          issue #109の根本原因（許可リクエストのトリガーにpointerdownを使っていたため
+          iOS Safariでユーザー操作起点と認識されなかったこと）は特定・修正済みだが、
+          再発時の切り分けに使えるよう表示自体は残す。修正済みのため、白字＋暗色背景の
+          目立つ表示から、黒字のみの目立たない表示に変更する */}
       <p
-        className="position-absolute top-0 start-0 m-2 text-white bg-dark bg-opacity-50 rounded px-2 py-1 small"
+        className="position-absolute top-0 start-0 m-2 text-dark opacity-75 small"
         style={{ fontFamily: 'monospace' }}
         data-testid="poi-debug"
       >

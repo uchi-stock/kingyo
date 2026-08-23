@@ -96,6 +96,33 @@ describe('Poi', () => {
     })
   })
 
+  it('許可リクエストのトリガーはpointerdownでは発火しない（clickのみ有効。issue #109の再発防止）', async () => {
+    // iOS Safariのrequestpermission()は、WHATWGのUser Activation仕様上
+    // 「activation triggering input event」に含まれないpointerdown/touchstart起点の
+    // 呼び出しをユーザー操作起点と認識せず、「Requesting device motion access requires
+    // a user gesture to prompt」という例外を投げて許可ダイアログを一切表示しない
+    // （issue #109で実機確認済み）。この回帰を検知できるよう、pointerdown単体では
+    // 呼ばれず、その後のclickで初めて呼ばれることを固定する
+    const requestPermission = vi.fn().mockResolvedValue('granted')
+    // @ts-expect-error テスト用にDeviceMotionEventをモックする
+    window.DeviceMotionEvent = function DeviceMotionEvent() {}
+    // @ts-expect-error テスト用にDeviceMotionEventをモックする
+    window.DeviceMotionEvent.requestPermission = requestPermission
+
+    render(<Poi />)
+
+    fireEvent.pointerDown(window)
+    // pointerdown直後の非同期処理が仮にあっても呼ばれていないことを確認するため、
+    // 他の非同期処理が一巡するのを待ってから検証する
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(requestPermission).not.toHaveBeenCalled()
+
+    fireEvent.click(window)
+    await waitFor(() => {
+      expect(requestPermission).toHaveBeenCalledTimes(1)
+    })
+  })
+
   it('デバッグ表示に、許可状態・受信イベント数・許可リクエストの結果が表示される（issue #109）', async () => {
     // 実機で「タップしても許可ダイアログが一切出ず、案内文も出ないためセンサーが
     // 反応しない理由が分からない」という報告があった。原因切り分けのため、
