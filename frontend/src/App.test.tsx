@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import App from './App.tsx';
 import { GOLDFISH_COUNT } from './components/GoldfishSchool.tsx';
@@ -89,13 +89,46 @@ function playCountFor(playCountsBySrc: Map<string, number>, srcFragment: string)
   return total;
 }
 
+interface RankingApiEntry {
+  timeMs: number;
+  catchCount: number;
+  recordedAt: string;
+}
+
+// ランキングAPI（issue #110, #113）をfetchモックで再現する。GET/POST /rankingに対し、
+// 実際のバックエンド（backend/src/services/rankingService.js）と同じ並び替え
+// （記録時間の降順）・上位10件への切り詰めをin-memoryで行う
+function mockRankingApi() {
+  const entries: RankingApiEntry[] = [];
+  function sortedTop10(): RankingApiEntry[] {
+    return [...entries].sort((a, b) => b.timeMs - a.timeMs).slice(0, 10);
+  }
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url === '/ranking' && init?.method === 'POST') {
+      const body = JSON.parse(init.body as string) as { timeMs: number; catchCount: number };
+      entries.push({ ...body, recordedAt: new Date().toISOString() });
+      return { ok: true, json: async () => sortedTop10() } as Response;
+    }
+    return { ok: true, json: async () => sortedTop10() } as Response;
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return { getEntries: () => sortedTop10() };
+}
+
 describe('App', () => {
+  beforeEach(() => {
+    // ランキングAPI（issue #110）を呼ばないテストでも、App起動時のGET /ranking
+    // 呼び出し自体は必ず発生するため、既定では常に空のランキングを返すスタブを
+    // 用意しておく（実ネットワークへ通信しない）。実際の記録を検証したいテストは
+    // mockRankingApi()で上書きする
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => [] }) as Response));
+  });
+
   afterEach(() => {
     window.DeviceMotionEvent = originalDeviceMotionEvent;
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth });
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight });
-    // ランキング（issue #89）がlocalStorageへ永続化されるため、テスト間で記録が漏れないようにする
-    localStorage.clear();
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -358,6 +391,7 @@ describe('App', () => {
   it('金魚の真上でも、勢いよく掬うと位置に関わらずポイが破れて捕獲に失敗する（issue #82, #85）', async () => {
     setUpMatchingPondAndViewport();
     const playCountsBySrc = mockAudioPlayCounts();
+    const rankingApi = mockRankingApi();
 
     let now = 1000;
     vi.spyOn(performance, 'now').mockImplementation(() => now);
@@ -388,12 +422,15 @@ describe('App', () => {
     expect(screen.getByTestId('poi-marker').getAttribute('src')).toContain('poi-torn');
 
     // 一度も捕獲できていないため、ランキングの捕獲数は0で記録される（issue #99）
-    const saved = JSON.parse(localStorage.getItem('kingyo-ranking') ?? '[]');
-    expect(saved).toHaveLength(1);
-    expect(saved[0].catchCount).toBe(0);
+    await waitFor(() => {
+      expect(rankingApi.getEntries()).toHaveLength(1);
+    });
+    expect(rankingApi.getEntries()[0].catchCount).toBe(0);
     // ランキングは別画面（issue #101）のため、遷移してから確認する
     fireEvent.click(screen.getByTestId('show-ranking-button'));
-    expect(screen.getByTestId('ranking-list')).toHaveTextContent('（0匹）');
+    await waitFor(() => {
+      expect(screen.getByTestId('ranking-list')).toHaveTextContent('（0匹）');
+    });
   });
 
   it('金魚の捕獲に成功すると、専用の効果音（catch-success.mp3）が再生される（issue #66）', async () => {
@@ -551,6 +588,7 @@ describe('App', () => {
 
   it('ポイが破れると、その時点までの経過時間と捕獲数がランキングへ記録される（issue #89, #99）', async () => {
     setUpMatchingPondAndViewport();
+    const rankingApi = mockRankingApi();
 
     let now = 1000;
     vi.spyOn(performance, 'now').mockImplementation(() => now);
@@ -571,18 +609,21 @@ describe('App', () => {
       expect(screen.getByTestId('poi-marker').tagName).toBe('IMG');
     });
 
-    const saved = JSON.parse(localStorage.getItem('kingyo-ranking') ?? '[]');
-    expect(saved).toHaveLength(1);
-    expect(typeof saved[0].timeMs).toBe('number');
-    expect(saved[0].timeMs).toBeGreaterThanOrEqual(0);
+    await waitFor(() => {
+      expect(rankingApi.getEntries()).toHaveLength(1);
+    });
+    const [saved] = rankingApi.getEntries();
+    expect(typeof saved.timeMs).toBe('number');
+    expect(saved.timeMs).toBeGreaterThanOrEqual(0);
     // 中心での捕獲は捕獲成功でもあるため、捕獲数は1になる
-    expect(saved[0].catchCount).toBe(1);
+    expect(saved.catchCount).toBe(1);
 
     // タイマー停止に伴い記録が追加され、別画面（issue #101）のランキングにも反映される
     fireEvent.click(screen.getByTestId('show-ranking-button'));
-    expect(screen.getByTestId('ranking-list')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('ranking-list')).toHaveTextContent('（1匹）');
+    });
     expect(screen.queryByTestId('ranking-empty')).not.toBeInTheDocument();
-    expect(screen.getByTestId('ranking-list')).toHaveTextContent('（1匹）');
   });
 
   it('ポイが破れる前は「ゲームオーバー」表示が出ない（issue #91）', () => {
@@ -621,6 +662,7 @@ describe('App', () => {
 
   it('リトライボタンを押すと、ポイ・タイム・金魚が初期状態に戻り再度プレイでき、ランキングは保持される（issue #93）', async () => {
     setUpMatchingPondAndViewport();
+    const rankingApi = mockRankingApi();
 
     let now = 1000;
     vi.spyOn(performance, 'now').mockImplementation(() => now);
@@ -657,7 +699,9 @@ describe('App', () => {
     expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
     // ランキング（過去の記録）はリトライしても消えない（別画面・issue #101なので遷移して確認する）
     fireEvent.click(screen.getByTestId('show-ranking-button'));
-    expect(screen.getByTestId('ranking-list')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('ranking-list')).toBeInTheDocument();
+    });
     fireEvent.click(screen.getByTestId('back-to-game-button'));
     // ランキング画面への遷移でPoiが一度アンマウントされる（issue #101）ため、
     // pond要素を取り直す（元の参照は既にDOMから外れている）
@@ -677,8 +721,9 @@ describe('App', () => {
     });
 
     // リトライ後の捕獲数は0から数え直されるため、2回目の記録も1匹として保存される（issue #99）
-    const saved = JSON.parse(localStorage.getItem('kingyo-ranking') ?? '[]');
-    expect(saved).toHaveLength(2);
-    expect(saved.every((entry: { catchCount: number }) => entry.catchCount === 1)).toBe(true);
+    await waitFor(() => {
+      expect(rankingApi.getEntries()).toHaveLength(2);
+    });
+    expect(rankingApi.getEntries().every((entry) => entry.catchCount === 1)).toBe(true);
   });
 });

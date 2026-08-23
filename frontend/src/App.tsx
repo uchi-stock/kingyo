@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import catchSuccessSoundUrl from './assets/sounds/catch-success.mp3';
 import poiTearSoundUrl from './assets/sounds/poi-tear.mp3';
 import scoopFailSoundUrl from './assets/sounds/scoop-fail.mp3';
@@ -30,7 +30,20 @@ function App() {
   // タイムは最初の掬うジェスチャーから計測を開始し、ポイが破れた時点で停止して
   // ランキングへ記録する（issue #89）
   const { elapsedMs, start: startTimer, stop: stopTimer, reset: resetTimer } = useElapsedTimer();
-  const [ranking, setRanking] = useState<RankingEntry[]>(() => loadRanking());
+  const [ranking, setRanking] = useState<RankingEntry[]>([]);
+  // ランキングはバックエンドAPI（issue #110）から非同期に読み込む。マウント時の
+  // 1回だけ取得し、失敗時は空配列のまま（画面表示自体はブロックしない）
+  useEffect(() => {
+    let isMounted = true;
+    loadRanking().then((entries) => {
+      if (isMounted) {
+        setRanking(entries);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
   // 記録達成までに捕獲できた金魚の数。タイムと合わせてランキングへ記録する（issue #99）
   const [catchCount, setCatchCount] = useState(0);
   // ゲーム画面はスクロールなしで1画面に収め、ランキングは別画面へ遷移して表示する（issue #101）。
@@ -55,7 +68,13 @@ function App() {
         startFleeingNearestGoldfish(poiPosition);
         setIsTorn(true);
         vibrateGameOver();
-        setRanking(addRankingEntry(stopTimer(), catchCount));
+        // API呼び出しの失敗がゲームプレイをブロックしないよう、結果を待たずに
+        // 先へ進む。成功時のみランキング表示を更新する（issue #110）
+        void addRankingEntry(stopTimer(), catchCount).then((entries) => {
+          if (entries) {
+            setRanking(entries);
+          }
+        });
         return;
       }
       const result = catchNearestGoldfish(poiPosition);
@@ -77,7 +96,11 @@ function App() {
         // navigator.vibrate()は呼ぶたびに直前の振動を打ち切って新しいパターンを開始するため、
         // 直前のvibrateCatchSuccess()（50ms）はこちら（200ms）に置き換わる（issue #106）
         vibrateGameOver();
-        setRanking(addRankingEntry(stopTimer(), nextCatchCount));
+        void addRankingEntry(stopTimer(), nextCatchCount).then((entries) => {
+          if (entries) {
+            setRanking(entries);
+          }
+        });
       }
     },
     [
