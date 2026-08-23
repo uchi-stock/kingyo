@@ -10,7 +10,7 @@ import { Poi } from './components/Poi';
 import { RankingList } from './components/RankingList';
 import type { ViewportPosition } from './goldfish/catchGoldfish';
 import { useGoldfishSchool } from './goldfish/useGoldfishSchool';
-import { vibrateGameOver } from './haptics/vibrateGameOver';
+import { vibrateCatchSuccess, vibrateGameOver } from './haptics/vibrate';
 import type { ScoopIntensity } from './motion/scoopGesture';
 import { addRankingEntry, formatElapsedTime, loadRanking, type RankingEntry } from './ranking/ranking';
 import { useElapsedTimer } from './ranking/useElapsedTimer';
@@ -66,6 +66,7 @@ function App() {
         return;
       }
       playCatchSuccessSound();
+      vibrateCatchSuccess();
       // 捕獲数はランキング記録用に、成否に関わらず捕獲成功のたびに数える（issue #99）
       const nextCatchCount = catchCount + 1;
       setCatchCount(nextCatchCount);
@@ -73,6 +74,8 @@ function App() {
         // 中心での捕獲時は、捕獲成功音に加えて破れる音も重ねて鳴らす（issue #69）
         playPoiTearSound();
         setIsTorn(true);
+        // navigator.vibrate()は呼ぶたびに直前の振動を打ち切って新しいパターンを開始するため、
+        // 直前のvibrateCatchSuccess()（50ms）はこちら（200ms）に置き換わる（issue #106）
         vibrateGameOver();
         setRanking(addRankingEntry(stopTimer(), nextCatchCount));
       }

@@ -221,7 +221,39 @@ describe('App', () => {
     });
   });
 
-  it('ポイの中心で金魚を捕獲して破れると、バイブレーションが発生する（issue #103）', async () => {
+  it('金魚の捕獲に成功すると、短いバイブレーションが発生する（issue #106）', async () => {
+    setUpMatchingPondAndViewport();
+    const vibrate = vi.fn();
+    Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true });
+
+    let now = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+
+    render(<App />);
+    const pond = screen.getByTestId('pond');
+
+    // 捕獲半径内だが中心（半径6）の外側で捕獲し、ポイが破れない（＝ゲームオーバー用の
+    // 長いバイブレーションと混ざらない）ケースで検証する
+    const fish0 = goldfishInitialPosition(0);
+    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent + 9, fish0.yPercent));
+
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
+
+    await waitFor(() => {
+      const img = screen.getAllByTestId('goldfish')[0].querySelector('img');
+      expect(img).toHaveStyle({ opacity: '0' });
+    });
+    expect(vibrate).toHaveBeenCalledTimes(1);
+    expect(vibrate).toHaveBeenCalledWith(50);
+
+    // @ts-expect-error テストで追加したvibrateプロパティを元に戻す
+    delete navigator.vibrate;
+  });
+
+  it('ポイの中心で金魚を捕獲して破れると、捕獲成功用の振動に続けてゲームオーバー用の長い振動が発生する（issue #103, #106）', async () => {
     setUpMatchingPondAndViewport();
     const vibrate = vi.fn();
     Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true });
@@ -244,7 +276,11 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getByTestId('poi-marker').tagName).toBe('IMG');
     });
-    expect(vibrate).toHaveBeenCalledTimes(1);
+    // 捕獲成功（50ms）→ 中心破れ＝ゲームオーバー（200ms）の順で呼ばれる。
+    // navigator.vibrate()は呼ぶたびに直前の振動を打ち切るため、実際に体感されるのは
+    // 最後の200msだが、呼び出し自体は両方発生する
+    expect(vibrate).toHaveBeenNthCalledWith(1, 50);
+    expect(vibrate).toHaveBeenNthCalledWith(2, 200);
 
     // @ts-expect-error テストで追加したvibrateプロパティを元に戻す
     delete navigator.vibrate;
