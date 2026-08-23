@@ -1,3 +1,10 @@
+## [1.34.2](https://github.com/uchi-stock/kingyo/compare/v1.34.1...v1.34.2) (2026-08-23)
+
+
+### Bug Fixes
+
+* センサー許可ボタンを撤去し診断用デバッグ表示を追加する ([#123](https://github.com/uchi-stock/kingyo/issues/123)) ([09ea7ca](https://github.com/uchi-stock/kingyo/commit/09ea7ca92f183adeee5125c28e94036c1f56286e))
+
 ## [1.34.1](https://github.com/uchi-stock/kingyo/compare/v1.34.0...v1.34.1) (2026-08-23)
 
 
