@@ -1,3 +1,10 @@
+# [1.31.0](https://github.com/uchi-stock/kingyo/compare/v1.30.0...v1.31.0) (2026-08-23)
+
+
+### Features
+
+* npm workspacesモノレポ化（frontend/backend構成への移行） ([#116](https://github.com/uchi-stock/kingyo/issues/116)) ([6aea5c9](https://github.com/uchi-stock/kingyo/commit/6aea5c99f9658479750d068a487b67bb0e76779a))
+
 # [1.30.0](https://github.com/uchi-stock/kingyo/compare/v1.29.1...v1.30.0) (2026-08-23)
 
 
