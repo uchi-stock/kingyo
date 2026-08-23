@@ -209,7 +209,7 @@ describe('App', () => {
     expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
   });
 
-  it('ポイの中心（半径6以内）で金魚を捕獲すると、ポイが破れて以降金魚を捕獲できなくなる（issue #45）', async () => {
+  it('ポイの中心（従来は破れる判定だった半径6以内）で金魚を捕獲しても、ポイは破れず捕獲を続けられる（issue #132）', async () => {
     setUpMatchingPondAndViewport();
 
     let now = 1000;
@@ -230,28 +230,32 @@ describe('App', () => {
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
 
+    // 捕獲アニメーション中は一時的にopacity 0で表示される
     await waitFor(() => {
-      expect(screen.getByTestId('poi-marker').tagName).toBe('IMG');
+      const img = screen.getAllByTestId('goldfish')[0].querySelector('img');
+      expect(img).toHaveStyle({ opacity: '0' });
     });
-    expect(screen.getByTestId('poi-marker').getAttribute('src')).toContain('poi-torn');
+    // 中心で捕獲してもポイは破れない（マーカーは通常表示のDIVのまま）
+    expect(screen.getByTestId('poi-marker').tagName).toBe('DIV');
 
     // 捕獲アニメーション（450ms）と、2匹目への掬うジェスチャーのクールダウン（500ms）を
     // まとめて経過させる
     now += 600;
 
     // 2匹目の金魚（id=1）の真上にポイを合わせ、
-    // 再度掬うフリックを行っても捕獲できないことを確認する
+    // ポイが破れていないため続けて捕獲できることを確認する
     const fish1 = goldfishInitialPosition(1);
     fireEvent.pointerDown(pond, pointerAt(fish1.xPercent, fish1.yPercent));
 
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 60 }));
     now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 120 }));
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 80 }));
 
-    // ポイが既に破れているため、2匹目の金魚に重ねても捕獲されない
     await waitFor(() => {
-      expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT - 1);
+      const img = screen.getAllByTestId('goldfish')[1].querySelector('img');
+      expect(img).toHaveStyle({ opacity: '0' });
     });
+    expect(screen.getByTestId('poi-marker').tagName).toBe('DIV');
   });
 
   it('金魚の捕獲に成功すると、短いバイブレーションが発生する（issue #106）', async () => {
@@ -265,10 +269,10 @@ describe('App', () => {
     render(<App />);
     const pond = screen.getByTestId('pond');
 
-    // 捕獲半径内だが中心（半径6）の外側で捕獲し、ポイが破れない（＝ゲームオーバー用の
-    // 長いバイブレーションと混ざらない）ケースで検証する
+    // ポイの中心（距離0）で捕獲しても、捕獲成功時はポイが破れない（issue #132）ため、
+    // ゲームオーバー用の長いバイブレーションとは混ざらないはず
     const fish0 = goldfishInitialPosition(0);
-    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent + 9, fish0.yPercent));
+    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent, fish0.yPercent));
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
@@ -281,39 +285,6 @@ describe('App', () => {
     });
     expect(vibrate).toHaveBeenCalledTimes(1);
     expect(vibrate).toHaveBeenCalledWith(50);
-
-    // @ts-expect-error テストで追加したvibrateプロパティを元に戻す
-    delete navigator.vibrate;
-  });
-
-  it('ポイの中心で金魚を捕獲して破れると、捕獲成功用の振動に続けてゲームオーバー用の長い振動が発生する（issue #103, #106）', async () => {
-    setUpMatchingPondAndViewport();
-    const vibrate = vi.fn();
-    Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true });
-
-    let now = 1000;
-    vi.spyOn(performance, 'now').mockImplementation(() => now);
-
-    render(<App />);
-    const pond = screen.getByTestId('pond');
-
-    // 1匹目の金魚（id=0）の真上（距離0）にポイを合わせ、中心での捕獲＝破れを再現する
-    const fish0 = goldfishInitialPosition(0);
-    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent, fish0.yPercent));
-
-    now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
-    now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('poi-marker').tagName).toBe('IMG');
-    });
-    // 捕獲成功（50ms）→ 中心破れ＝ゲームオーバー（200ms）の順で呼ばれる。
-    // navigator.vibrate()は呼ぶたびに直前の振動を打ち切るため、実際に体感されるのは
-    // 最後の200msだが、呼び出し自体は両方発生する
-    expect(vibrate).toHaveBeenNthCalledWith(1, 50);
-    expect(vibrate).toHaveBeenNthCalledWith(2, 200);
 
     // @ts-expect-error テストで追加したvibrateプロパティを元に戻す
     delete navigator.vibrate;
@@ -484,7 +455,7 @@ describe('App', () => {
     expect(playCountFor(playCountsBySrc, 'catch-success')).toBe(1);
   });
 
-  it('ポイの中心で金魚を捕獲すると、破れ専用の効果音（poi-tear.mp3）が捕獲成功音に重ねて再生される（issue #69）', async () => {
+  it('ポイの中心で金魚を捕獲しても、破れ専用の効果音（poi-tear.mp3）は再生されない（issue #69, #132）', async () => {
     setUpMatchingPondAndViewport();
     const playCountsBySrc = mockAudioPlayCounts();
 
@@ -494,35 +465,10 @@ describe('App', () => {
     render(<App />);
     const pond = screen.getByTestId('pond');
 
-    // 1匹目の金魚（id=0）の真上（距離0）にポイを合わせ、中心での捕獲を再現する
+    // 1匹目の金魚（id=0）の真上（距離0、従来は「中心での捕獲」として破れ音が
+    // 鳴っていた位置）にポイを合わせる
     const fish0 = goldfishInitialPosition(0);
     fireEvent.pointerDown(pond, pointerAt(fish0.xPercent, fish0.yPercent));
-
-    now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
-    // 50ms経過でbetaが20度変化 = 400度/秒（勢いの閾値600は超えない「優しい」掬い）
-    now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
-
-    await waitFor(() => {
-      expect(playCountFor(playCountsBySrc, 'poi-tear')).toBeGreaterThan(1);
-    });
-    expect(playCountFor(playCountsBySrc, 'catch-success')).toBeGreaterThan(1);
-  });
-
-  it('捕獲半径内だが中心（半径6）の外側で捕獲した場合は、破れ専用の効果音（poi-tear.mp3）は再生されない（issue #69）', async () => {
-    setUpMatchingPondAndViewport();
-    const playCountsBySrc = mockAudioPlayCounts();
-
-    let now = 1000;
-    vi.spyOn(performance, 'now').mockImplementation(() => now);
-
-    render(<App />);
-    const pond = screen.getByTestId('pond');
-
-    // 1匹目の金魚（id=0）から水平に9離れた位置（捕獲半径10以内・中心判定半径6の外側）にポイを合わせる
-    const fish0 = goldfishInitialPosition(0);
-    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent + 9, fish0.yPercent));
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
@@ -534,32 +480,6 @@ describe('App', () => {
       expect(playCountFor(playCountsBySrc, 'catch-success')).toBeGreaterThan(1);
     });
     expect(playCountFor(playCountsBySrc, 'poi-tear')).toBe(1);
-  });
-
-  it('捕獲半径内だが中心（半径6）の外側で捕獲した場合は、ポイは破れない（issue #45）', async () => {
-    setUpMatchingPondAndViewport();
-
-    let now = 1000;
-    vi.spyOn(performance, 'now').mockImplementation(() => now);
-
-    render(<App />);
-    const pond = screen.getByTestId('pond');
-
-    // 1匹目の金魚（id=0）から水平に9離れた位置（捕獲半径10以内・中心判定半径6の外側）にポイを合わせる
-    const fish0 = goldfishInitialPosition(0);
-    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent + 9, fish0.yPercent));
-
-    now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
-    // 50ms経過でbetaが20度変化 = 400度/秒（勢いの閾値600は超えない「優しい」掬い）
-    now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
-
-    await waitFor(() => {
-      const img = screen.getAllByTestId('goldfish')[0].querySelector('img');
-      expect(img).toHaveStyle({ opacity: '0' });
-    });
-    expect(screen.getByTestId('poi-marker').tagName).toBe('DIV');
   });
 
   it('初期状態ではタイム表示が00:00.0で、ランキングは空である（issue #89）', () => {
@@ -596,14 +516,26 @@ describe('App', () => {
     render(<App />);
     const pond = screen.getByTestId('pond');
 
-    // 1匹目の金魚（id=0）の真上（距離0）にポイを合わせ、中心での捕獲＝破れを再現する
+    // まず1匹目（id=0）を優しく掬って捕獲する
     const fish0 = goldfishInitialPosition(0);
     fireEvent.pointerDown(pond, pointerAt(fish0.xPercent, fish0.yPercent));
-
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
+    await waitFor(() => {
+      const img = screen.getAllByTestId('goldfish')[0].querySelector('img');
+      expect(img).toHaveStyle({ opacity: '0' });
+    });
+
+    // 捕獲アニメーション（450ms）とクールダウン（500ms）を経過させてから、勢いよく掬って
+    // 失敗させポイを破る（issue #132: 捕獲成功時はポイが破れなくなったため、破る＝
+    // ゲームオーバーにするにはこの操作が必要）
+    now += 600;
+    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent, fish0.yPercent));
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    now += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 300 }));
 
     await waitFor(() => {
       expect(screen.getByTestId('poi-marker').tagName).toBe('IMG');
@@ -615,7 +547,7 @@ describe('App', () => {
     const [saved] = rankingApi.getEntries();
     expect(typeof saved.timeMs).toBe('number');
     expect(saved.timeMs).toBeGreaterThanOrEqual(0);
-    // 中心での捕獲は捕獲成功でもあるため、捕獲数は1になる
+    // 1匹目は捕獲済みのため、捕獲数は1のまま記録される
     expect(saved.catchCount).toBe(1);
 
     // タイマー停止に伴い記録が追加され、別画面（issue #101）のランキングにも反映される
@@ -640,14 +572,15 @@ describe('App', () => {
     render(<App />);
     const pond = screen.getByTestId('pond');
 
-    // 1匹目の金魚（id=0）の真上（距離0）にポイを合わせ、中心での捕獲＝破れを再現する
+    // 勢いよく掬って失敗させ、ポイを破る（issue #132: 捕獲成功時はポイが破れなくなった
+    // ため、破る＝ゲームオーバーにするにはこの操作が必要）
     const fish0 = goldfishInitialPosition(0);
     fireEvent.pointerDown(pond, pointerAt(fish0.xPercent, fish0.yPercent));
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
     now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 300 }));
 
     await waitFor(() => {
       expect(screen.getByTestId('game-over-message')).toBeInTheDocument();
@@ -670,23 +603,18 @@ describe('App', () => {
     render(<App />);
     const pond = screen.getByTestId('pond');
 
-    // 1匹目の金魚（id=0）の真上（距離0）にポイを合わせ、中心での捕獲＝破れを再現する
+    // 勢いよく掬って失敗させ、ポイを破る（issue #132: 捕獲成功時はポイが破れなくなった
+    // ため、破る＝ゲームオーバーにするにはこの操作が必要）
     const fish0 = goldfishInitialPosition(0);
     fireEvent.pointerDown(pond, pointerAt(fish0.xPercent, fish0.yPercent));
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
     now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 300 }));
 
     await waitFor(() => {
       expect(screen.getByTestId('retry-button')).toBeInTheDocument();
-    });
-
-    // 捕獲アニメーション（450ms）が経過し、金魚が1匹減った状態を確認する
-    now += 500;
-    await waitFor(() => {
-      expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT - 1);
     });
 
     fireEvent.click(screen.getByTestId('retry-button'));
@@ -707,23 +635,23 @@ describe('App', () => {
     // pond要素を取り直す（元の参照は既にDOMから外れている）
     const pondAfterReturn = screen.getByTestId('pond');
 
-    // リトライ後、再度掬うジェスチャーで捕獲できることを確認する。isTornのリセットに伴い
-    // usePoiMotion側の掬うジェスチャー検出も内部状態ごと再購読される（クールダウンも
-    // リセットされる）ため、待機なしですぐに再度フリックできる
+    // リトライ後、再度勢いよく掬って失敗させポイを破れる（＝ゲームオーバーになる）ことを
+    // 確認する。isTornのリセットに伴いusePoiMotion側の掬うジェスチャー検出も内部状態ごと
+    // 再購読される（クールダウンもリセットされる）ため、待機なしですぐに再度フリックできる
     fireEvent.pointerDown(pondAfterReturn, pointerAt(fish0.xPercent, fish0.yPercent));
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
     now += 50;
-    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 300 }));
 
     await waitFor(() => {
       expect(screen.getByTestId('game-over-message')).toBeInTheDocument();
     });
 
-    // リトライ後の捕獲数は0から数え直されるため、2回目の記録も1匹として保存される（issue #99）
+    // 2回とも勢いよく掬って失敗しているため、捕獲数は0のまま2件記録される（issue #99）
     await waitFor(() => {
       expect(rankingApi.getEntries()).toHaveLength(2);
     });
-    expect(rankingApi.getEntries().every((entry) => entry.catchCount === 1)).toBe(true);
+    expect(rankingApi.getEntries().every((entry) => entry.catchCount === 0)).toBe(true);
   });
 });
