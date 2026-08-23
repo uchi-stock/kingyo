@@ -1,3 +1,10 @@
+# [1.27.0](https://github.com/uchi-stock/kingyo/compare/v1.26.0...v1.27.0) (2026-08-23)
+
+
+### Features
+
+* ランキングに獲った金魚の数も記録・表示する ([#100](https://github.com/uchi-stock/kingyo/issues/100)) ([7b23bb2](https://github.com/uchi-stock/kingyo/commit/7b23bb2c710b5425a738719263e30a4f3861a49c)), closes [#99](https://github.com/uchi-stock/kingyo/issues/99)
+
 # [1.26.0](https://github.com/uchi-stock/kingyo/compare/v1.25.0...v1.26.0) (2026-08-23)
 
 
