@@ -64,11 +64,28 @@ export function useGoldfishSchool(count: number): UseGoldfishSchoolResult {
       const elapsedMs = now - startTime
       lastTime = now
 
-      const nextEntities = entitiesRef.current
+      // 衝突回避（issue #122）の判定には、更新前（このフレーム開始時点）の全個体の位置を
+      // 使う。更新後の位置を使うと、配列内の並び順によって「先に更新された金魚」の新しい
+      // 位置と「まだ更新されていない金魚」の古い位置が混在し、判定が個体の並び順に依存して
+      // しまうため
+      const previousEntities = entitiesRef.current
+      const nextEntities = previousEntities
         .filter((entity) => entity.caughtAt === null || now - entity.caughtAt < CATCH_ANIMATION_DURATION_MS)
         .map((entity) =>
           entity.caughtAt === null
-            ? { ...entity, state: stepGoldfish(entity.state, dtSeconds, elapsedMs, entity.seed) }
+            ? {
+                ...entity,
+                state: stepGoldfish(
+                  entity.state,
+                  dtSeconds,
+                  elapsedMs,
+                  entity.seed,
+                  undefined,
+                  previousEntities
+                    .filter((other) => other.id !== entity.id && other.caughtAt === null)
+                    .map((other) => ({ xPercent: other.state.xPercent, yPercent: other.state.yPercent })),
+                ),
+              }
             : entity,
         )
       entitiesRef.current = nextEntities

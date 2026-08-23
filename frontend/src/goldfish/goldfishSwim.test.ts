@@ -170,6 +170,69 @@ describe('stepGoldfish', () => {
     expect(next.headingDeg).toBe(0)
   })
 
+  it('近くに他の金魚がいる場合、その金魚から遠ざかる方向へ進行方向を変える（issue #122）', () => {
+    const state = {
+      xPercent: 50,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
+    // 右側（xPercent+5）に他の金魚がいる場合、左方向（180度）へ遠ざかるはず
+    const next = stepGoldfish(state, 0.016, 0, 0, midRandom, [{ xPercent: 55, yPercent: 50 }])
+
+    expect(next.headingDeg).toBeCloseTo(180, 0)
+  })
+
+  it('他の金魚が回避半径の外にいる場合は、進行方向を変えない（issue #122）', () => {
+    const state = {
+      xPercent: 50,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
+    // 回避半径（10%）より十分離れた位置
+    const next = stepGoldfish(state, 0.016, 0, 0, midRandom, [{ xPercent: 80, yPercent: 50 }])
+
+    expect(next.headingDeg).toBe(0)
+  })
+
+  it('複数の金魚が近くにいる場合、それぞれから遠ざかる方向を合成した向きへ進行方向を変える（issue #122）', () => {
+    const state = {
+      xPercent: 50,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
+    // 上下（yPercent±5）に他の金魚がいる場合、上下の反発は打ち消し合い、真横（180度）への
+    // 反発は無いため、この場合は反発が生じずheadingDegは変化しない
+    const next = stepGoldfish(state, 0.016, 0, 0, midRandom, [
+      { xPercent: 50, yPercent: 45 },
+      { xPercent: 50, yPercent: 55 },
+    ])
+
+    expect(next.headingDeg).toBe(0)
+  })
+
+  it('逃走中は、近くに他の金魚がいても回避せず脅威から逃げる方向を優先する（issue #122）', () => {
+    const state = {
+      xPercent: 50,
+      yPercent: 50,
+      headingDeg: 90,
+      displayHeadingDeg: 90,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 1500,
+    }
+    const next = stepGoldfish(state, 0.016, 0, 0, midRandom, [{ xPercent: 55, yPercent: 50 }])
+
+    expect(next.headingDeg).toBe(90)
+  })
+
   it('逃走中の残り時間は経過とともに減少し、0になると通常状態に戻る', () => {
     let state = {
       xPercent: 50,
