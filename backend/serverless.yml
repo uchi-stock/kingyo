@@ -1,0 +1,58 @@
+# ランキングAPI（Lambda + API Gateway HTTP API + DynamoDB）。ログイン機構は無く、
+# 全員共通の1つのランキングを扱う（issue #110）。OSLS（`osls`パッケージ、
+# Serverless Framework v3互換）でデプロイする（dev-standards
+# docs/standard-tech-stack.md「3. バックエンドAPI」標準構成）。
+#
+#   cd backend && npx osls deploy
+#
+# デプロイにはAWS認証情報（AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY）が必要。
+# CI/CD（cd.ymlのdeploy job）から実行される。
+service: kingyo-ranking-api
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  region: ap-northeast-1
+  stage: prod
+  httpApi:
+    cors: true
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:Query
+            - dynamodb:DeleteItem
+          Resource: !GetAtt RankingTable.Arn
+  environment:
+    RANKING_TABLE_NAME: !Ref RankingTable
+
+functions:
+  api:
+    handler: src/handler.handler
+    events:
+      - httpApi:
+          method: ANY
+          path: /{proxy+}
+
+resources:
+  Resources:
+    RankingTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: pk
+            AttributeType: S
+          - AttributeName: sk
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pk
+            KeyType: HASH
+          - AttributeName: sk
+            KeyType: RANGE
+
+  Outputs:
+    ApiEndpoint:
+      Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"

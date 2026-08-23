@@ -7,8 +7,13 @@
     "test": "vitest run",
     "lint": "oxlint"
   },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1106.0",
+    "@aws-sdk/lib-dynamodb": "^3.1106.0"
+  },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.10",
+    "osls": "^4.1.0",
     "oxlint": "^1.75.0",
     "vitest": "^4.1.10"
   }
