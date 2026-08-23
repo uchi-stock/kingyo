@@ -126,7 +126,11 @@ function App() {
     <>
       <CameraBackground />
       <GoldfishSchool goldfish={goldfish} />
-      <main className="d-flex flex-column p-3" style={{ height: '100dvh', overflow: 'hidden' }}>
+      {/* position-relativeは、position: fixedのCameraBackground・GoldfishSchoolより手前に
+          描画するために必須（issue #105）。position指定のない要素はfixed/absolute/relative
+          要素より必ず先に描画される仕様のため、これを外すとタイトル等のテキストが
+          カメラ映像・金魚レイヤーの背後に隠れてしまう */}
+      <main className="d-flex flex-column p-3 position-relative" style={{ height: '100dvh', overflow: 'hidden' }}>
         <div className="bg-white bg-opacity-75 rounded-3 p-3 mb-3 flex-shrink-0">
           <div className="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-2">
             <div className="d-flex align-items-baseline flex-wrap gap-2">
