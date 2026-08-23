@@ -31,10 +31,17 @@ jobs:
     steps:
       # frontend/src配下でdev-standards submoduleのshared/ui/*.cssをsymlink共有している
       # ため（sync-manifest.local.json）、submodules: trueでdev-standardsも取得する
-      # （未取得のままbuildするとsymlinkの参照先が存在せずENOENTで失敗する）
+      # （未取得のままbuildするとsymlinkの参照先が存在せずENOENTで失敗する）。
+      # refをmainに固定して明示的に取得し直す。デフォルト（github.sha）のままだと、
+      # このワークフローをトリガーしたpush時点のコミットがチェックアウトされてしまい、
+      # cdジョブ（semantic-release）がその後に作成・pushするバージョン更新コミット
+      # （chore(release): X.Y.Z）を含まないままビルドしてしまう。その結果、
+      # package.jsonのversion（frontend/vite.config.tsが読み込みBuildInfo.tsxで表示）が
+      # 実際のリリースより1つ古いまま埋め込まれる不具合があった（issue #127）
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          ref: main
           submodules: true
 
       - name: Deploy infrastructure (S3 + CloudFront)
