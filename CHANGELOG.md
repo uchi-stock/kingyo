@@ -1,3 +1,10 @@
+# [1.29.0](https://github.com/uchi-stock/kingyo/compare/v1.28.0...v1.29.0) (2026-08-23)
+
+
+### Features
+
+* ゲームオーバー時にバイブレーションでフィードバックする ([#104](https://github.com/uchi-stock/kingyo/issues/104)) ([bd983a6](https://github.com/uchi-stock/kingyo/commit/bd983a6b61f1b3db6aff73f00dbd01713b679d32))
+
 # [1.28.0](https://github.com/uchi-stock/kingyo/compare/v1.27.0...v1.28.0) (2026-08-23)
 
 
