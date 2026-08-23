@@ -89,7 +89,7 @@ describe('Poi', () => {
 
     render(<Poi />)
 
-    fireEvent.pointerDown(window)
+    fireEvent.click(window)
 
     await waitFor(() => {
       expect(requestPermission).toHaveBeenCalledTimes(1)
@@ -116,7 +116,7 @@ describe('Poi', () => {
       expect(screen.getByTestId('poi-debug')).toHaveTextContent('向き受信: 1')
     })
 
-    fireEvent.pointerDown(window)
+    fireEvent.click(window)
     await waitFor(() => {
       expect(screen.getByTestId('poi-debug')).toHaveTextContent('許可結果: granted')
     })
@@ -131,7 +131,7 @@ describe('Poi', () => {
     window.DeviceMotionEvent.requestPermission = requestPermission
 
     render(<Poi />)
-    fireEvent.pointerDown(window)
+    fireEvent.click(window)
 
     await waitFor(() => {
       expect(
@@ -163,7 +163,7 @@ describe('Poi', () => {
     window.DeviceOrientationEvent.requestPermission = orientationRequestPermission
 
     render(<Poi />)
-    fireEvent.pointerDown(window)
+    fireEvent.click(window)
 
     // どちらのPromiseもまだ解決していない時点で、両方のrequestPermissionが呼ばれている
     // （片方をawaitしてから次を呼ぶと、iOS Safari等でuser activationが失われうるため。issue #14）
