@@ -1,3 +1,10 @@
+## [1.35.2](https://github.com/uchi-stock/kingyo/compare/v1.35.1...v1.35.2) (2026-08-23)
+
+
+### Bug Fixes
+
+* 金魚の捕獲に成功した場合、ポイが破れないようにする ([#133](https://github.com/uchi-stock/kingyo/issues/133)) ([3d589b2](https://github.com/uchi-stock/kingyo/commit/3d589b2bd4f9a362ba055e0c8708489b8b9d9d03)), closes [#82](https://github.com/uchi-stock/kingyo/issues/82)
+
 ## [1.35.1](https://github.com/uchi-stock/kingyo/compare/v1.35.0...v1.35.1) (2026-08-23)
 
 
