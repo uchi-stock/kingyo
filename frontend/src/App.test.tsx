@@ -288,6 +288,8 @@ describe('App', () => {
     const saved = JSON.parse(localStorage.getItem('kingyo-ranking') ?? '[]');
     expect(saved).toHaveLength(1);
     expect(saved[0].catchCount).toBe(0);
+    // ランキングは別画面（issue #101）のため、遷移してから確認する
+    fireEvent.click(screen.getByTestId('show-ranking-button'));
     expect(screen.getByTestId('ranking-list')).toHaveTextContent('（0匹）');
   });
 
@@ -423,7 +425,25 @@ describe('App', () => {
   it('初期状態ではタイム表示が00:00.0で、ランキングは空である（issue #89）', () => {
     render(<App />);
     expect(screen.getByTestId('elapsed-timer')).toHaveTextContent('00:00.0');
+    // ランキングは別画面（issue #101）のため、遷移してから確認する
+    fireEvent.click(screen.getByTestId('show-ranking-button'));
     expect(screen.getByTestId('ranking-empty')).toBeInTheDocument();
+  });
+
+  it('ランキング画面へ遷移するとゲーム画面（カメラ・金魚・ポイ）が非表示になり、戻るとまた表示される（issue #101）', () => {
+    render(<App />);
+    expect(screen.getByTestId('pond')).toBeInTheDocument();
+    expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
+
+    fireEvent.click(screen.getByTestId('show-ranking-button'));
+    expect(screen.queryByTestId('pond')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('goldfish-school')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('camera-background')).not.toBeInTheDocument();
+    expect(screen.getByTestId('ranking-empty')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('back-to-game-button'));
+    expect(screen.getByTestId('pond')).toBeInTheDocument();
+    expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
   });
 
   it('ポイが破れると、その時点までの経過時間と捕獲数がランキングへ記録される（issue #89, #99）', async () => {
@@ -448,18 +468,17 @@ describe('App', () => {
       expect(screen.getByTestId('poi-marker').tagName).toBe('IMG');
     });
 
-    // タイマー停止に伴い、ランキングへ記録が追加され画面にも反映される
-    await waitFor(() => {
-      expect(screen.getByTestId('ranking-list')).toBeInTheDocument();
-    });
-    expect(screen.queryByTestId('ranking-empty')).not.toBeInTheDocument();
-
     const saved = JSON.parse(localStorage.getItem('kingyo-ranking') ?? '[]');
     expect(saved).toHaveLength(1);
     expect(typeof saved[0].timeMs).toBe('number');
     expect(saved[0].timeMs).toBeGreaterThanOrEqual(0);
     // 中心での捕獲は捕獲成功でもあるため、捕獲数は1になる
     expect(saved[0].catchCount).toBe(1);
+
+    // タイマー停止に伴い記録が追加され、別画面（issue #101）のランキングにも反映される
+    fireEvent.click(screen.getByTestId('show-ranking-button'));
+    expect(screen.getByTestId('ranking-list')).toBeInTheDocument();
+    expect(screen.queryByTestId('ranking-empty')).not.toBeInTheDocument();
     expect(screen.getByTestId('ranking-list')).toHaveTextContent('（1匹）');
   });
 
@@ -533,13 +552,18 @@ describe('App', () => {
     expect(screen.getByTestId('poi-marker').tagName).toBe('DIV');
     // 金魚も初期匹数に戻る
     expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
-    // ランキング（過去の記録）はリトライしても消えない
+    // ランキング（過去の記録）はリトライしても消えない（別画面・issue #101なので遷移して確認する）
+    fireEvent.click(screen.getByTestId('show-ranking-button'));
     expect(screen.getByTestId('ranking-list')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('back-to-game-button'));
+    // ランキング画面への遷移でPoiが一度アンマウントされる（issue #101）ため、
+    // pond要素を取り直す（元の参照は既にDOMから外れている）
+    const pondAfterReturn = screen.getByTestId('pond');
 
     // リトライ後、再度掬うジェスチャーで捕獲できることを確認する。isTornのリセットに伴い
     // usePoiMotion側の掬うジェスチャー検出も内部状態ごと再購読される（クールダウンも
     // リセットされる）ため、待機なしですぐに再度フリックできる
-    fireEvent.pointerDown(pond, pointerAt(fish0.xPercent, fish0.yPercent));
+    fireEvent.pointerDown(pondAfterReturn, pointerAt(fish0.xPercent, fish0.yPercent));
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
     now += 50;
