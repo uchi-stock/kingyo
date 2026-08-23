@@ -86,22 +86,11 @@ function App() {
       }
       playCatchSuccessSound();
       vibrateCatchSuccess();
-      // 捕獲数はランキング記録用に、成否に関わらず捕獲成功のたびに数える（issue #99）
-      const nextCatchCount = catchCount + 1;
-      setCatchCount(nextCatchCount);
-      if (result.isCenterHit) {
-        // 中心での捕獲時は、捕獲成功音に加えて破れる音も重ねて鳴らす（issue #69）
-        playPoiTearSound();
-        setIsTorn(true);
-        // navigator.vibrate()は呼ぶたびに直前の振動を打ち切って新しいパターンを開始するため、
-        // 直前のvibrateCatchSuccess()（50ms）はこちら（200ms）に置き換わる（issue #106）
-        vibrateGameOver();
-        void addRankingEntry(stopTimer(), nextCatchCount).then((entries) => {
-          if (entries) {
-            setRanking(entries);
-          }
-        });
-      }
+      // 捕獲数はランキング記録用に、成否に関わらず捕獲成功のたびに数える（issue #99）。
+      // 捕獲に成功した場合は、ポイの中心・端どちらで捕獲してもポイは破れない（issue #132。
+      // 従来はポイの中心付近での捕獲時にポイが破れゲームオーバーになる仕様だったが、
+      // 捕獲成功なのに同時にゲームオーバーになるのは分かりにくいという指摘を受け撤廃した）
+      setCatchCount(catchCount + 1);
     },
     [
       isTorn,

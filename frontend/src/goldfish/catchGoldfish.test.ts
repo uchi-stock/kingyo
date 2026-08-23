@@ -34,17 +34,4 @@ describe('findCatchableGoldfish', () => {
     const result = findCatchableGoldfish({ xVw: 50, yVh: 50 }, goldfish)
     expect(result?.id).toBe(1)
   })
-
-  it('ポイの中心（TEAR_RADIUS_VW=6以内）で捕獲すると、isCenterHitがtrueになる', () => {
-    const goldfish = [{ id: 1, xPercent: 52, yPercent: 50 }] // ポイから2離れている
-    const result = findCatchableGoldfish({ xVw: 50, yVh: 50 }, goldfish)
-    expect(result?.isCenterHit).toBe(true)
-  })
-
-  it('ポイの中心から離れた（捕獲半径内だがTEAR_RADIUS_VWの外側）位置で捕獲すると、isCenterHitがfalseになる', () => {
-    const goldfish = [{ id: 1, xPercent: 58, yPercent: 50 }] // ポイから8離れている
-    const result = findCatchableGoldfish({ xVw: 50, yVh: 50 }, goldfish)
-    expect(result?.id).toBe(1)
-    expect(result?.isCenterHit).toBe(false)
-  })
 })
