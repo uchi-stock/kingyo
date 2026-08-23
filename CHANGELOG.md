@@ -1,3 +1,10 @@
+# [1.34.0](https://github.com/uchi-stock/kingyo/compare/v1.33.0...v1.34.0) (2026-08-23)
+
+
+### Features
+
+* CI/CDでランキングAPIをデプロイし、フロントエンドへエンドポイントを注入する ([#119](https://github.com/uchi-stock/kingyo/issues/119)) ([a6bae36](https://github.com/uchi-stock/kingyo/commit/a6bae36ce8fa3de455fc30d5dfbd021bd6bd86ee))
+
 # [1.33.0](https://github.com/uchi-stock/kingyo/compare/v1.32.0...v1.33.0) (2026-08-23)
 
 
