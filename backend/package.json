@@ -1,0 +1,15 @@
+{
+  "name": "kingyo-backend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "lint": "oxlint"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.10",
+    "oxlint": "^1.75.0",
+    "vitest": "^4.1.10"
+  }
+}
