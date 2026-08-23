@@ -1,3 +1,10 @@
+## [1.34.1](https://github.com/uchi-stock/kingyo/compare/v1.34.0...v1.34.1) (2026-08-23)
+
+
+### Bug Fixes
+
+* 加速度センサーの許可を明示的に要求できるボタンを復活させる ([#121](https://github.com/uchi-stock/kingyo/issues/121)) ([36ca606](https://github.com/uchi-stock/kingyo/commit/36ca6062ea75048efcab5b6823b4940284412396))
+
 # [1.34.0](https://github.com/uchi-stock/kingyo/compare/v1.33.0...v1.34.0) (2026-08-23)
 
 
