@@ -1,3 +1,10 @@
+# [1.30.0](https://github.com/uchi-stock/kingyo/compare/v1.29.1...v1.30.0) (2026-08-23)
+
+
+### Features
+
+* 金魚の捕獲成功時にもバイブレーションでフィードバックする ([#108](https://github.com/uchi-stock/kingyo/issues/108)) ([9413f49](https://github.com/uchi-stock/kingyo/commit/9413f490b5cadbc1e0b96be58de463dadfe8f916))
+
 ## [1.29.1](https://github.com/uchi-stock/kingyo/compare/v1.29.0...v1.29.1) (2026-08-23)
 
 
