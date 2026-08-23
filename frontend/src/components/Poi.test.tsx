@@ -82,7 +82,7 @@ describe('Poi', () => {
     ).toBeInTheDocument()
   })
 
-  it('iOSのようにrequestPermissionが必要な場合、専用ボタンなしで画面への最初のタップが許可リクエストのトリガーになる（issue #63）', async () => {
+  it('iOSのようにrequestPermissionが必要な場合、画面への最初のタップが許可リクエストのトリガーになる（issue #63）', async () => {
     const requestPermission = vi.fn().mockResolvedValue('granted')
     // @ts-expect-error テスト用にDeviceMotionEventをモックする
     window.DeviceMotionEvent = function DeviceMotionEvent() {}
@@ -90,9 +90,29 @@ describe('Poi', () => {
     window.DeviceMotionEvent.requestPermission = requestPermission
 
     render(<Poi />)
-    expect(screen.queryByRole('button', { name: 'センサーを有効にする' })).not.toBeInTheDocument()
 
     fireEvent.pointerDown(window)
+
+    await waitFor(() => {
+      expect(requestPermission).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('iOSのようにrequestPermissionが必要な場合、明示的な「センサーを有効にする」ボタンも表示され、押すと許可リクエストが呼ばれる（issue #109）', async () => {
+    // 画面への最初のタップ（issue #63）が何らかの理由で許可リクエストのトリガーとして
+    // 機能しなかった場合に備え、確実に許可ダイアログを呼び出せる手段を残す（issue #109:
+    // 実機で「タップしても許可ダイアログが一度も出ず、案内文も出ないためセンサーが
+    // 反応しないまま気づけない」という報告があった）
+    const requestPermission = vi.fn().mockResolvedValue('granted')
+    // @ts-expect-error テスト用にDeviceMotionEventをモックする
+    window.DeviceMotionEvent = function DeviceMotionEvent() {}
+    // @ts-expect-error テスト用にDeviceMotionEventをモックする
+    window.DeviceMotionEvent.requestPermission = requestPermission
+
+    render(<Poi />)
+    const button = screen.getByRole('button', { name: 'センサーを有効にする' })
+
+    fireEvent.click(button)
 
     await waitFor(() => {
       expect(requestPermission).toHaveBeenCalledTimes(1)

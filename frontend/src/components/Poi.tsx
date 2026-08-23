@@ -15,7 +15,7 @@ export interface PoiProps {
 }
 
 function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
-  const { permission, pose, debug, setPositionFromPointer } = usePoiMotion(isTorn)
+  const { permission, pose, debug, requestPermission, setPositionFromPointer } = usePoiMotion(isTorn)
   const pondRef = useRef<HTMLDivElement>(null)
   const [pondSize, setPondSize] = useState({ width: 0, height: 0 })
   const showManualControl = permission === 'denied' || permission === 'unsupported'
@@ -114,6 +114,22 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
           }}
           aria-hidden="true"
         />
+      )}
+
+      {permission === 'unknown' && (
+        // 画面への最初のタップを許可リクエストのトリガーとする実装（issue #63）だけでは、
+        // 何らかの理由でそのタップが検出されなかった場合にユーザーへ手がかりが一切示されず
+        // 「センサーが反応しない」まま気づけない不具合が実機で報告された（issue #109）。
+        // 明示的なボタンを併設し、確実に許可ダイアログを呼び出せる手段を残す
+        <button
+          type="button"
+          className="btn btn-primary position-absolute top-50 start-50 translate-middle"
+          onClick={() => {
+            void requestPermission()
+          }}
+        >
+          センサーを有効にする
+        </button>
       )}
 
       {showManualControl && (
