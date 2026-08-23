@@ -1,3 +1,10 @@
+# [1.32.0](https://github.com/uchi-stock/kingyo/compare/v1.31.0...v1.32.0) (2026-08-23)
+
+
+### Features
+
+* ランキングAPI（GET/POST）をLambda + API Gateway + DynamoDB（OSLS）で実装 ([#117](https://github.com/uchi-stock/kingyo/issues/117)) ([51eb4c5](https://github.com/uchi-stock/kingyo/commit/51eb4c571b633285b86b05088841ee704a449ba7)), closes [#89](https://github.com/uchi-stock/kingyo/issues/89)
+
 # [1.31.0](https://github.com/uchi-stock/kingyo/compare/v1.30.0...v1.31.0) (2026-08-23)
 
 
