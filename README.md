@@ -11,17 +11,18 @@
 
 ## 設計方針
 
-本プロジェクトの開発ルール・CI/CD構成・技術スタックの選定は、開発共通プロジェクト [bamiyanapp/dev-standards](https://github.com/bamiyanapp/dev-standards) を引き継ぐ。ログイン・独自バックエンドAPIは不要なため、以下の標準構成（`dev-standards/docs/standard-tech-stack.md`）を採用する。
+本プロジェクトの開発ルール・CI/CD構成・技術スタックの選定は、開発共通プロジェクト [bamiyanapp/dev-standards](https://github.com/bamiyanapp/dev-standards) を引き継ぐ。ログインは不要だが、ランキングの永続化のためバックエンドAPIを採用している。以下の標準構成（`dev-standards/docs/standard-tech-stack.md`）を採用する。
 
-- フロントエンド: React 19 + Vite + TypeScript + Bootstrap 5.3（単一パッケージ、`frontend/`）
-- ホスティング: S3 + CloudFront（`infra/`、OSLSデプロイ）
+- フロントエンド: React 19 + Vite + TypeScript + Bootstrap 5.3（`frontend/`）
+- バックエンドAPI: ランキング永続化のため採用。OSLS + Lambda + API Gateway + DynamoDB（`backend/`）。ログイン機構は無く、全員共通の1つのランキングを扱う
+- リポジトリ構成: npm workspaces（`frontend/` + `backend/`、ルート直下に単一の`package-lock.json`）
+- ホスティング: フロントエンドはS3 + CloudFront（`infra/`、OSLSデプロイ）、バックエンドAPIはLambda + API Gateway（別スタック）
 
 ## 開発
 
 ```sh
-cd frontend
 npm install
-npm run dev
+npm run dev --workspace frontend
 ```
 
 ## ステータス
