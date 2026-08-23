@@ -1,3 +1,10 @@
+# [1.28.0](https://github.com/uchi-stock/kingyo/compare/v1.27.0...v1.28.0) (2026-08-23)
+
+
+### Features
+
+* ゲーム画面を1画面に収め、ランキングを別画面に分離する ([#102](https://github.com/uchi-stock/kingyo/issues/102)) ([186c212](https://github.com/uchi-stock/kingyo/commit/186c212dbafdda37e60d84441a349b33c81ff997)), closes [#89](https://github.com/uchi-stock/kingyo/issues/89) [#99](https://github.com/uchi-stock/kingyo/issues/99)
+
 # [1.27.0](https://github.com/uchi-stock/kingyo/compare/v1.26.0...v1.27.0) (2026-08-23)
 
 
