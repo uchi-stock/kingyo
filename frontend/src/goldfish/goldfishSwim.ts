@@ -23,6 +23,7 @@ const RANDOM_TURN_MIN_INTERVAL_MS = 3000
 const RANDOM_TURN_MAX_INTERVAL_MS = 8000
 const FLEE_SPEED_MULTIPLIER = 3 // 逃走中は通常の何倍の速さで泳ぐか
 const FLEE_DURATION_MS = 1500 // 逃走が続く時間
+const COLLISION_AVOIDANCE_RADIUS_PERCENT = 10 // 他の金魚がこの距離未満に近づくと回避行動を取る（issue #122）
 
 function normalizeDeg(deg: number): number {
   return ((deg % 360) + 360) % 360
@@ -39,6 +40,36 @@ function clampPercent(value: number): number {
 
 function randomTurnIntervalMs(random: () => number): number {
   return RANDOM_TURN_MIN_INTERVAL_MS + random() * (RANDOM_TURN_MAX_INTERVAL_MS - RANDOM_TURN_MIN_INTERVAL_MS)
+}
+
+export interface OtherGoldfishPosition {
+  xPercent: number
+  yPercent: number
+}
+
+// 半径COLLISION_AVOIDANCE_RADIUS_PERCENT以内にいる他の金魚から遠ざかる方向を返す
+// （issue #122）。近いほど強く影響するよう距離に応じて重み付けし、複数匹が近くにいる
+// 場合はそれぞれの反発方向を合成する。範囲内に誰もいない場合はnullを返す
+function computeAvoidanceHeadingDeg(
+  state: GoldfishState,
+  others: readonly OtherGoldfishPosition[],
+): number | null {
+  let sumX = 0
+  let sumY = 0
+  for (const other of others) {
+    const dx = state.xPercent - other.xPercent
+    const dy = state.yPercent - other.yPercent
+    const distance = Math.hypot(dx, dy)
+    if (distance > 0 && distance < COLLISION_AVOIDANCE_RADIUS_PERCENT) {
+      const weight = (COLLISION_AVOIDANCE_RADIUS_PERCENT - distance) / COLLISION_AVOIDANCE_RADIUS_PERCENT
+      sumX += (dx / distance) * weight
+      sumY += (dy / distance) * weight
+    }
+  }
+  if (sumX === 0 && sumY === 0) {
+    return null
+  }
+  return normalizeDeg((Math.atan2(sumY, sumX) * 180) / Math.PI)
 }
 
 export function createInitialGoldfishState(seed: number, random: () => number = Math.random): GoldfishState {
@@ -79,13 +110,16 @@ export function startFleeing(state: GoldfishState, threatPosition: ThreatPositio
 // 転回時に唐突な向き反転に見えないようにする（issue #29）。
 // 逃走中（fleeCountdownMs > 0）は、startFleetingで設定された進行方向を保ったまま
 // （ランダムな方向転換は行わない）通常のFLEE_SPEED_MULTIPLIER倍の速さで泳ぐ。
-// 壁に当たった場合の転回は逃走中も通常通り機能する（issue #53）
+// 壁に当たった場合の転回は逃走中も通常通り機能する（issue #53）。
+// othersに他の金魚の位置を渡すと、近くにいる金魚から遠ざかる方向へ優先的に進行方向を
+// 変える（issue #122）。逃走中は、脅威（ポイ）から逃げる方向を優先するため対象外とする
 export function stepGoldfish(
   state: GoldfishState,
   dtSeconds: number,
   elapsedMs: number,
   seed: number,
   random: () => number = Math.random,
+  others: readonly OtherGoldfishPosition[] = [],
 ): GoldfishState {
   const isFleeing = state.fleeCountdownMs > 0
   const fleeCountdownMs = Math.max(0, state.fleeCountdownMs - dtSeconds * 1000)
@@ -97,6 +131,13 @@ export function stepGoldfish(
     const offset = (random() * 2 - 1) * RANDOM_TURN_RANGE_DEG
     baseHeading = normalizeDeg(baseHeading + offset)
     turnCountdownMs = randomTurnIntervalMs(random)
+  }
+
+  if (!isFleeing) {
+    const avoidanceHeadingDeg = computeAvoidanceHeadingDeg(state, others)
+    if (avoidanceHeadingDeg !== null) {
+      baseHeading = avoidanceHeadingDeg
+    }
   }
 
   const wobbleDeg = WOBBLE_DEG * Math.sin((elapsedMs / 1000) * WOBBLE_SPEED_RAD_PER_SEC + seed * Math.PI * 2)
