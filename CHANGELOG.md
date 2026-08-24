@@ -1,3 +1,10 @@
+# [1.38.0](https://github.com/uchi-stock/kingyo/compare/v1.37.0...v1.38.0) (2026-08-24)
+
+
+### Features
+
+* 起動時、画面全体をフェードインで表示する ([#139](https://github.com/uchi-stock/kingyo/issues/139)) ([7e60fc4](https://github.com/uchi-stock/kingyo/commit/7e60fc4cf146a5a8bd007dc43151c2db130612a2))
+
 # [1.37.0](https://github.com/uchi-stock/kingyo/compare/v1.36.0...v1.37.0) (2026-08-24)
 
 
