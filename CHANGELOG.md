@@ -1,3 +1,10 @@
+# [1.37.0](https://github.com/uchi-stock/kingyo/compare/v1.36.0...v1.37.0) (2026-08-24)
+
+
+### Features
+
+* PWAのService Workerを導入し、フロントのキャッシュ高速化と更新通知に対応する ([#136](https://github.com/uchi-stock/kingyo/issues/136)) ([382c451](https://github.com/uchi-stock/kingyo/commit/382c4512e029867ab9e767cfb6220ef575a52bbc))
+
 # [1.36.0](https://github.com/uchi-stock/kingyo/compare/v1.35.2...v1.36.0) (2026-08-23)
 
 
