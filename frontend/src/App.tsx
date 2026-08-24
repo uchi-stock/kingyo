@@ -8,6 +8,8 @@ import { CameraBackground } from './components/CameraBackground';
 import { GOLDFISH_COUNT, GoldfishSchool } from './components/GoldfishSchool';
 import { Poi } from './components/Poi';
 import { RankingList } from './components/RankingList';
+import { ServiceWorkerRegistration } from './components/ServiceWorkerRegistration';
+import { UpdateNotifier } from './components/UpdateNotifier';
 import type { ViewportPosition } from './goldfish/catchGoldfish';
 import { useGoldfishSchool } from './goldfish/useGoldfishSchool';
 import { vibrateCatchSuccess, vibrateGameOver } from './haptics/vibrate';
@@ -114,73 +116,82 @@ function App() {
     setCatchCount(0);
   }, [resetGoldfish, resetTimer]);
 
-  // ランキング画面表示中は、カメラ映像・金魚・ポイ（センサー購読）を停止するため、
-  // ゲーム画面用のコンポーネントごとアンマウントする（issue #101）
-  if (view === 'ranking') {
-    return (
-      <main className="d-flex flex-column p-3" style={{ height: '100dvh', overflow: 'hidden' }}>
-        <div className="d-flex align-items-center gap-2 mb-3 flex-shrink-0">
-          <button
-            type="button"
-            className="btn btn-outline-secondary btn-sm"
-            onClick={() => setView('game')}
-            data-testid="back-to-game-button"
-          >
-            ← ゲームに戻る
-          </button>
-          <h1 className="fs-4 fw-bold mb-0">ランキング</h1>
-        </div>
-        <div className="bg-white bg-opacity-75 rounded-3 p-3 overflow-auto">
-          <RankingList entries={ranking} />
-        </div>
-      </main>
-    );
-  }
-
   return (
     <>
-      <CameraBackground />
-      <GoldfishSchool goldfish={goldfish} />
-      {/* position-relativeは、position: fixedのCameraBackground・GoldfishSchoolより手前に
-          描画するために必須（issue #105）。position指定のない要素はfixed/absolute/relative
-          要素より必ず先に描画される仕様のため、これを外すとタイトル等のテキストが
-          カメラ映像・金魚レイヤーの背後に隠れてしまう */}
-      <main className="d-flex flex-column p-3 position-relative" style={{ height: '100dvh', overflow: 'hidden' }}>
-        <div className="bg-white bg-opacity-75 rounded-3 p-3 mb-3 flex-shrink-0">
-          <div className="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-2">
-            <div className="d-flex align-items-baseline flex-wrap gap-2">
-              <h1 className="fs-2 fw-bold mb-0">金魚掬い</h1>
-              <BuildInfo />
-            </div>
+      {/* Service Workerの登録・更新通知はview（ゲーム/ランキング画面）に関わらず
+          常時マウントする（issue #135）。ゲーム画面用コンポーネントのように画面遷移で
+          アンマウントする必要はない（issue #101とは独立した関心事のため） */}
+      <ServiceWorkerRegistration />
+      <UpdateNotifier />
+      {view === 'ranking' ? (
+        // ランキング画面表示中は、カメラ映像・金魚・ポイ（センサー購読）を停止するため、
+        // ゲーム画面用のコンポーネントごとアンマウントする（issue #101）
+        <main className="d-flex flex-column p-3" style={{ height: '100dvh', overflow: 'hidden' }}>
+          <div className="d-flex align-items-center gap-2 mb-3 flex-shrink-0">
             <button
               type="button"
               className="btn btn-outline-secondary btn-sm"
-              onClick={() => setView('ranking')}
-              data-testid="show-ranking-button"
+              onClick={() => setView('game')}
+              data-testid="back-to-game-button"
             >
-              ランキング
+              ← ゲームに戻る
             </button>
+            <h1 className="fs-4 fw-bold mb-0">ランキング</h1>
           </div>
-          {isTorn && (
-            // ポイが破れて操作不能になった（issue #79）ことが見た目（マーカー画像の
-            // 切り替え）だけでは分かりにくいという指摘を受け、明示的な表示を追加した（issue #91）
-            <div className="alert alert-danger text-center py-2 mb-2" role="alert" data-testid="game-over-message">
-              <p className="fw-bold mb-2">ゲームオーバー</p>
-              <button type="button" className="btn btn-primary" onClick={handleRetry} data-testid="retry-button">
-                リトライ
-              </button>
+          <div className="bg-white bg-opacity-75 rounded-3 p-3 overflow-auto">
+            <RankingList entries={ranking} />
+          </div>
+        </main>
+      ) : (
+        <>
+          <CameraBackground />
+          <GoldfishSchool goldfish={goldfish} />
+          {/* position-relativeは、position: fixedのCameraBackground・GoldfishSchoolより手前に
+              描画するために必須（issue #105）。position指定のない要素はfixed/absolute/relative
+              要素より必ず先に描画される仕様のため、これを外すとタイトル等のテキストが
+              カメラ映像・金魚レイヤーの背後に隠れてしまう */}
+          <main className="d-flex flex-column p-3 position-relative" style={{ height: '100dvh', overflow: 'hidden' }}>
+            <div className="bg-white bg-opacity-75 rounded-3 p-3 mb-3 flex-shrink-0">
+              <div className="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-2">
+                <div className="d-flex align-items-baseline flex-wrap gap-2">
+                  <h1 className="fs-2 fw-bold mb-0">金魚掬い</h1>
+                  <BuildInfo />
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary btn-sm"
+                  onClick={() => setView('ranking')}
+                  data-testid="show-ranking-button"
+                >
+                  ランキング
+                </button>
+              </div>
+              {isTorn && (
+                // ポイが破れて操作不能になった（issue #79）ことが見た目（マーカー画像の
+                // 切り替え）だけでは分かりにくいという指摘を受け、明示的な表示を追加した（issue #91）
+                <div
+                  className="alert alert-danger text-center py-2 mb-2"
+                  role="alert"
+                  data-testid="game-over-message"
+                >
+                  <p className="fw-bold mb-2">ゲームオーバー</p>
+                  <button type="button" className="btn btn-primary" onClick={handleRetry} data-testid="retry-button">
+                    リトライ
+                  </button>
+                </div>
+              )}
+              <p className="mb-0 fs-5" data-testid="elapsed-timer">
+                タイム: {formatElapsedTime(elapsedMs)}
+              </p>
             </div>
-          )}
-          <p className="mb-0 fs-5" data-testid="elapsed-timer">
-            タイム: {formatElapsedTime(elapsedMs)}
-          </p>
-        </div>
-        {/* ポイ操作エリアの高さは残り領域いっぱいに可変とし、画面全体を100dvh内に収めて
-            縦スクロールを発生させない（issue #101） */}
-        <div className="flex-grow-1" style={{ minHeight: 0 }}>
-          <Poi onScoop={handleScoop} isTorn={isTorn} />
-        </div>
-      </main>
+            {/* ポイ操作エリアの高さは残り領域いっぱいに可変とし、画面全体を100dvh内に収めて
+                縦スクロールを発生させない（issue #101） */}
+            <div className="flex-grow-1" style={{ minHeight: 0 }}>
+              <Poi onScoop={handleScoop} isTorn={isTorn} />
+            </div>
+          </main>
+        </>
+      )}
     </>
   );
 }
