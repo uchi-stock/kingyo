@@ -1,1 +1,23 @@
 @import "./bootstrap-theme.css";
+
+/* 起動時（オープニング）、画面全体をフェードインで表示する（issue #138）。
+   Appコンポーネントのマウント時に一度だけ適用するクラスのため、再生は初回表示時のみになる */
+.app-opening-fade-in {
+  animation: app-opening-fade-in 0.6s ease-out;
+}
+
+@keyframes app-opening-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* モーション低減設定が有効な環境では、酔いやすさ等へ配慮しアニメーションを無効化する */
+@media (prefers-reduced-motion: reduce) {
+  .app-opening-fade-in {
+    animation: none;
+  }
+}
