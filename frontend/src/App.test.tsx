@@ -137,6 +137,24 @@ describe('App', () => {
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
   });
 
+  it('起動時（オープニング）、画面全体のラッパーがフェードイン用のクラスを持つ（issue #138）', () => {
+    render(<App />);
+    expect(screen.getByTestId('app-opening')).toHaveClass('app-opening-fade-in');
+  });
+
+  it('ランキング画面へ遷移して戻っても、オープニング用ラッパー自体は同じ要素のまま維持される（issue #138）', () => {
+    // フェードインのCSSアニメーションは要素の初回マウント時にのみ再生される。
+    // view切り替えでラッパー自体が作り直される（アンマウント→再マウント）と、
+    // 画面遷移のたびに再生されてしまうため、同一要素が維持されることを保証する
+    render(<App />);
+    const openingWrapper = screen.getByTestId('app-opening');
+
+    fireEvent.click(screen.getByTestId('show-ranking-button'));
+    fireEvent.click(screen.getByTestId('back-to-game-button'));
+
+    expect(screen.getByTestId('app-opening')).toBe(openingWrapper);
+  });
+
   it('ゲーム画面の<main>はposition-relativeを持つ（issue #105）', () => {
     // position: fixedのCameraBackground・GoldfishSchoolより後にDOM上へ現れる<main>が
     // position指定を持たないと、CSSの描画順序上タイトル等のテキストがそれらの背後に
