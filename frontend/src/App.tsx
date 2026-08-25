@@ -8,7 +8,7 @@ import { CameraBackground } from './components/CameraBackground';
 import { GOLDFISH_COUNT, GoldfishSchool } from './components/GoldfishSchool';
 import { Poi } from './components/Poi';
 import { RankingList } from './components/RankingList';
-import { ServiceWorkerRegistration } from './components/ServiceWorkerRegistration';
+import ServiceWorkerRegistration from './components/ServiceWorkerRegistration';
 import { UpdateNotifier } from './components/UpdateNotifier';
 import type { ViewportPosition } from './goldfish/catchGoldfish';
 import { useGoldfishSchool } from './goldfish/useGoldfishSchool';
