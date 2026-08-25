@@ -1,3 +1,10 @@
+## [1.38.1](https://github.com/uchi-stock/kingyo/compare/v1.38.0...v1.38.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* 全ての金魚を捕獲したら、クリア判定してタイマーを止める ([#143](https://github.com/uchi-stock/kingyo/issues/143)) ([4213e3c](https://github.com/uchi-stock/kingyo/commit/4213e3c4d4e8dc61a40a528cd1bd05e8a4ff385a))
+
 # [1.38.0](https://github.com/uchi-stock/kingyo/compare/v1.37.0...v1.38.0) (2026-08-24)
 
 
