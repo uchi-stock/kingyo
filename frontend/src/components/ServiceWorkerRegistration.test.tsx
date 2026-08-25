@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
-import { ServiceWorkerRegistration } from './ServiceWorkerRegistration'
+import ServiceWorkerRegistration from './ServiceWorkerRegistration'
 
 // テスト対象がnavigator.serviceWorkerを参照するため、jsdomに実装のないこのAPIを
 // テストごとにモックし、afterEachで元に戻す

@@ -7,6 +7,10 @@
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
+    // dev-standards shared/pwa/ServiceWorkerRegistration.jsxをsymlinkのまま
+    // インポートできるようにする（issue #137）。checkJsは有効にしないため、
+    // .jsx側の型チェックは行われない（プロダクト固有の値を持たない共通コードのため許容する）
+    "allowJs": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
