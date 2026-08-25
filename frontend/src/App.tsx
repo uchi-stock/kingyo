@@ -51,12 +51,32 @@ function App() {
   // ゲーム画面はスクロールなしで1画面に収め、ランキングは別画面へ遷移して表示する（issue #101）。
   // URLルーティングは追加せず、単純なstateで画面を切り替える
   const [view, setView] = useState<'game' | 'ranking'>('game');
+  // 全ての金魚を捕獲したかどうか（issue #142）。goldfishは捕獲アニメーション完了後に
+  // 実際に配列から除去されるため、その時点でlengthが0になることをクリア条件として使う。
+  // 別途stateを持たず導出値にすることで、リトライ時のresetGoldfish()だけで自動的に
+  // falseへ戻る（isTornのような専用stateの管理が不要）
+  const isClear = goldfish.length === 0;
+
+  // クリアした瞬間（isClearがfalse→trueに変わった時）にタイマーを止め、ランキングへ
+  // 記録する。isTorn側（handleScoop内）と異なり、クリアはhandleScoopの呼び出しとは
+  // 非同期にタイミングがずれる（捕獲アニメーション完了を待つ）ため、useEffectで検知する
+  useEffect(() => {
+    if (!isClear) {
+      return;
+    }
+    void addRankingEntry(stopTimer(), catchCount).then((entries) => {
+      if (entries) {
+        setRanking(entries);
+      }
+    });
+  }, [isClear, catchCount, stopTimer]);
 
   const handleScoop = useCallback(
     (poiPosition: ViewportPosition, intensity: ScoopIntensity) => {
-      // ポイが既に破れている場合は捕獲を試みない（usePoiMotion側で既にこの状態では
-      // 掬うジェスチャー自体を検出しないが、念のため保持する。issue #79）
-      if (isTorn) {
+      // ポイが既に破れている場合、または既に全ての金魚を捕獲済みの場合は
+      // 捕獲を試みない（isTornの理由はusePoiMotion側の早期returnと同様、念のための保持。
+      // issue #79, #142）
+      if (isTorn || isClear) {
         return;
       }
       // 最初の掬うジェスチャーでタイマーを開始する。2回目以降はstartTimer内でno-op（issue #89）
@@ -96,6 +116,7 @@ function App() {
     },
     [
       isTorn,
+      isClear,
       catchCount,
       catchNearestGoldfish,
       startFleeingNearestGoldfish,
@@ -183,6 +204,25 @@ function App() {
                     data-testid="game-over-message"
                   >
                     <p className="fw-bold mb-2">ゲームオーバー</p>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handleRetry}
+                      data-testid="retry-button"
+                    >
+                      リトライ
+                    </button>
+                  </div>
+                )}
+                {isClear && (
+                  // 全ての金魚を捕獲した（issue #142）ことが分かる表示。ゲームオーバー
+                  // 表示と同じ構造だが、成功であることが分かるよう配色を変える
+                  <div
+                    className="alert alert-success text-center py-2 mb-2"
+                    role="alert"
+                    data-testid="game-clear-message"
+                  >
+                    <p className="fw-bold mb-2">クリア！</p>
                     <button
                       type="button"
                       className="btn btn-primary"
