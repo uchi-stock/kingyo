@@ -56,6 +56,33 @@ function parseTranslateVwVh(transform: string): { xVw: number; yVh: number } {
   return { xVw: Number.parseFloat(match[1]), yVh: Number.parseFloat(match[2]) };
 }
 
+// pond上に残っている金魚（配列の先頭）を、優しい掬うジェスチャーで順番に全て捕獲する
+// （issue #142のクリア判定検証用）。金魚は時間経過で自律的に移動するため、初期位置
+// ではなく毎回GoldfishSchoolのtransformから現在位置を読み取って狙う。呼び出し前に
+// setUpMatchingPondAndViewport()・performance.nowのモック（nowRefを参照するもの）を
+// 済ませておくこと
+async function catchAllGoldfish(pond: HTMLElement, nowRef: { current: number }) {
+  for (let remaining = GOLDFISH_COUNT; remaining > 0; remaining -= 1) {
+    const target = screen.getAllByTestId('goldfish')[0];
+    const { xVw, yVh } = parseTranslateVwVh(target.style.transform);
+    fireEvent.pointerDown(pond, pointerAt(xVw, yVh));
+
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    nowRef.current += 50;
+    // 50ms経過でbetaが20度変化 = 400度/秒（勢いの閾値600は超えない「優しい」掬い）
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
+
+    // 捕獲アニメーション（450ms）と次の掬うジェスチャーのクールダウン（500ms）を
+    // まとめて経過させ、実際にDOMから除去されるのを待つ。最後の1匹を捕獲すると
+    // 金魚が0匹になり、getAllByTestIdは要素が見つからず例外を投げてしまうため、
+    // 0件を許容するqueryAllByTestIdを使う
+    nowRef.current += 600;
+    await waitFor(() => {
+      expect(screen.queryAllByTestId('goldfish')).toHaveLength(remaining - 1);
+    });
+  }
+}
+
 // Audioコンストラクタをモックし、srcごとのplay()呼び出し回数を記録する。
 // usePlaySoundは画面への最初のpointerdownで無音アンロック用のplay()を1回呼ぶため
 // （issue #73）、実際のゲームロジックによる再生かどうかはコンストラクタ呼び出しの有無ではなく、
@@ -200,6 +227,60 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT - 1);
     });
+  });
+
+  it('全ての金魚を捕獲すると、クリア表示が出てタイマーが停止し、ランキングへ記録される（issue #142）', async () => {
+    setUpMatchingPondAndViewport();
+    const rankingApi = mockRankingApi();
+
+    const nowRef = { current: 1000 };
+    vi.spyOn(performance, 'now').mockImplementation(() => nowRef.current);
+
+    render(<App />);
+    const pond = screen.getByTestId('pond');
+
+    await catchAllGoldfish(pond, nowRef);
+
+    // 金魚が0匹になった時点でクリア表示が出て、以降はゲームオーバー表示と同様に
+    // リトライボタンが表示される
+    expect(screen.getByTestId('game-clear-message')).toHaveTextContent('クリア！');
+    expect(screen.getByTestId('retry-button')).toBeInTheDocument();
+
+    // その時点までの経過時間・捕獲数（＝金魚の総数）がランキングへ記録される
+    await waitFor(() => {
+      expect(rankingApi.getEntries()).toHaveLength(1);
+    });
+    const [saved] = rankingApi.getEntries();
+    expect(saved.catchCount).toBe(GOLDFISH_COUNT);
+
+    // リトライすると、クリア表示が消え金魚が初期匹数に戻る
+    fireEvent.click(screen.getByTestId('retry-button'));
+    expect(screen.queryByTestId('game-clear-message')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
+  });
+
+  it('クリア後は、掬うジェスチャーをしても捕獲は起きない（issue #142）', async () => {
+    setUpMatchingPondAndViewport();
+
+    const nowRef = { current: 1000 };
+    vi.spyOn(performance, 'now').mockImplementation(() => nowRef.current);
+
+    render(<App />);
+    const pond = screen.getByTestId('pond');
+
+    await catchAllGoldfish(pond, nowRef);
+
+    expect(screen.getByTestId('game-clear-message')).toBeInTheDocument();
+
+    // クリア後、画面のどこかで再度掬うジェスチャーをしても何も起きない
+    // （goldfish自体が0匹のため捕獲対象は無いが、クリア表示・状態が変化しないことを確認する）
+    fireEvent.pointerDown(pond, { clientX: 100, clientY: 50 });
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
+    nowRef.current += 50;
+    fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getByTestId('game-clear-message')).toBeInTheDocument();
   });
 
   it('掬うフリック操作をしても、ポイの近くに金魚がいなければ何も起きない', async () => {
