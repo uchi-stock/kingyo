@@ -1,3 +1,10 @@
+# [1.40.0](https://github.com/uchi-stock/kingyo/compare/v1.39.0...v1.40.0) (2026-08-27)
+
+
+### Features
+
+* **goldfish:** 開始速度を遅くし捕獲が進むほど加速するようにする ([#147](https://github.com/uchi-stock/kingyo/issues/147)) ([5a4ef24](https://github.com/uchi-stock/kingyo/commit/5a4ef241e0dfee9136edabf00a534f4e3f90cc1c)), closes [#146](https://github.com/uchi-stock/kingyo/issues/146)
+
 # [1.39.0](https://github.com/uchi-stock/kingyo/compare/v1.38.1...v1.39.0) (2026-08-27)
 
 
