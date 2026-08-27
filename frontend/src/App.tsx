@@ -9,6 +9,7 @@ import { GOLDFISH_COUNT, GoldfishSchool } from './components/GoldfishSchool';
 import { Poi } from './components/Poi';
 import { RankingList } from './components/RankingList';
 import ServiceWorkerRegistration from './components/ServiceWorkerRegistration';
+import { ShareButton } from './components/ShareButton';
 import { UpdateNotifier } from './components/UpdateNotifier';
 import type { ViewportPosition } from './goldfish/catchGoldfish';
 import { useGoldfishSchool } from './goldfish/useGoldfishSchool';
@@ -186,14 +187,20 @@ function App() {
                     <h1 className="fs-2 fw-bold mb-0">金魚掬い</h1>
                     <BuildInfo />
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary btn-sm"
-                    onClick={() => setView('ranking')}
-                    data-testid="show-ranking-button"
-                  >
-                    ランキング
-                  </button>
+                  <div className="d-flex align-items-center gap-2">
+                    {/* このページ（ゲーム画面URL）をQRコード・コピー可能なリンクとして
+                        共有できるボタン（issue #144）。スマートフォンオンリーの利用環境で、
+                        近くにいる家族・友人へQRコード読み取りで手軽に共有できるようにする */}
+                    <ShareButton className="btn btn-outline-secondary btn-sm" />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => setView('ranking')}
+                      data-testid="show-ranking-button"
+                    >
+                      ランキング
+                    </button>
+                  </div>
                 </div>
                 {isTorn && (
                   // ポイが破れて操作不能になった（issue #79）ことが見た目（マーカー画像の
