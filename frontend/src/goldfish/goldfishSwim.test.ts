@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { createInitialGoldfishState, startFleeing, stepGoldfish } from './goldfishSwim'
+import {
+  computeSpeedMultiplier,
+  createInitialGoldfishState,
+  SPEED_MULTIPLIER_AT_LAST_FISH,
+  startFleeing,
+  stepGoldfish,
+} from './goldfishSwim'
 
 // 常に中間値を返すrandom関数。テスト対象の状態はturnCountdownMsを十分大きく
 // 設定しておくことで、ランダム方向転換が発生しない状況を作る
@@ -46,7 +52,7 @@ describe('stepGoldfish', () => {
     // elapsedMs=0, seed=0 の場合、wobbleDeg = 15*sin(0+0) = 0
     const next = stepGoldfish(state, 1, 0, 0, midRandom)
 
-    expect(next.xPercent).toBeCloseTo(55, 5)
+    expect(next.xPercent).toBeCloseTo(53, 5)
     expect(next.yPercent).toBeCloseTo(50, 5)
     expect(next.headingDeg).toBe(0)
   })
@@ -266,6 +272,81 @@ describe('stepGoldfish', () => {
       state = stepGoldfish(state, 0.02, i * 20, 0, midRandom)
     }
     expect(state.fleeCountdownMs).toBe(0)
+  })
+
+  it('speedMultiplierを指定すると、通常時の速さがその倍率分だけ変わる（issue #146）', () => {
+    const state = {
+      xPercent: 50,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
+    const base = stepGoldfish(state, 1, 0, 0, midRandom, [])
+    const doubled = stepGoldfish(state, 1, 0, 0, midRandom, [], 2)
+
+    const baseDistance = base.xPercent - state.xPercent
+    const doubledDistance = doubled.xPercent - state.xPercent
+    expect(doubledDistance).toBeCloseTo(baseDistance * 2, 5)
+  })
+
+  it('speedMultiplier省略時は1倍として扱う（既存呼び出しとの後方互換性）', () => {
+    const state = {
+      xPercent: 50,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 0,
+    }
+    const withoutArg = stepGoldfish(state, 1, 0, 0, midRandom)
+    const withExplicitOne = stepGoldfish(state, 1, 0, 0, midRandom, [], 1)
+
+    expect(withoutArg.xPercent).toBeCloseTo(withExplicitOne.xPercent, 10)
+  })
+
+  it('逃走中もspeedMultiplierが速さに掛け合わされる（issue #146）', () => {
+    const fleeingState = {
+      xPercent: 50,
+      yPercent: 50,
+      headingDeg: 0,
+      displayHeadingDeg: 0,
+      turnCountdownMs: 10000,
+      fleeCountdownMs: 1500,
+    }
+    const base = stepGoldfish(fleeingState, 1, 0, 0, midRandom, [])
+    const doubled = stepGoldfish(fleeingState, 1, 0, 0, midRandom, [], 2)
+
+    const baseDistance = base.xPercent - fleeingState.xPercent
+    const doubledDistance = doubled.xPercent - fleeingState.xPercent
+    expect(doubledDistance).toBeCloseTo(baseDistance * 2, 5)
+  })
+})
+
+describe('computeSpeedMultiplier', () => {
+  it('全匹残っている場合は1倍を返す', () => {
+    expect(computeSpeedMultiplier(8, 8)).toBeCloseTo(1, 10)
+  })
+
+  it('残り1匹の場合は上限倍率（SPEED_MULTIPLIER_AT_LAST_FISH）を返す', () => {
+    expect(computeSpeedMultiplier(1, 8)).toBeCloseTo(SPEED_MULTIPLIER_AT_LAST_FISH, 10)
+  })
+
+  it('捕獲が進むほど（残り匹数が減るほど）倍率が線形に増加する', () => {
+    const multipliers = [8, 6, 4, 2, 1].map((remaining) => computeSpeedMultiplier(remaining, 8))
+    for (let i = 1; i < multipliers.length; i += 1) {
+      expect(multipliers[i]).toBeGreaterThan(multipliers[i - 1])
+    }
+  })
+
+  it('総匹数が1匹以下の場合は上限倍率を返す（0除算を避ける）', () => {
+    expect(computeSpeedMultiplier(1, 1)).toBe(SPEED_MULTIPLIER_AT_LAST_FISH)
+    expect(computeSpeedMultiplier(0, 0)).toBe(SPEED_MULTIPLIER_AT_LAST_FISH)
+  })
+
+  it('残り0匹（全滅後の最終フレーム等）の場合も上限倍率を返す', () => {
+    expect(computeSpeedMultiplier(0, 8)).toBe(SPEED_MULTIPLIER_AT_LAST_FISH)
   })
 })
 

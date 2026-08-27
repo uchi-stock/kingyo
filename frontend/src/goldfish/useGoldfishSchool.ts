@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { findCatchableGoldfish, type CatchResult, type ViewportPosition } from './catchGoldfish'
 import { findNearestGoldfishToFlee } from './fleeGoldfish'
-import { createInitialGoldfishState, startFleeing, stepGoldfish, type GoldfishState } from './goldfishSwim'
+import {
+  computeSpeedMultiplier,
+  createInitialGoldfishState,
+  startFleeing,
+  stepGoldfish,
+  type GoldfishState,
+} from './goldfishSwim'
 
 const CATCH_ANIMATION_DURATION_MS = 450 // 捕獲後、拡大しながらフェードアウトする演出の表示時間
 
@@ -69,6 +75,11 @@ export function useGoldfishSchool(count: number): UseGoldfishSchoolResult {
       // 位置と「まだ更新されていない金魚」の古い位置が混在し、判定が個体の並び順に依存して
       // しまうため
       const previousEntities = entitiesRef.current
+      // 残り匹数（捕獲アニメーション中も含め、まだ捕獲されていない匹数）が減るほど、
+      // 残っている金魚の遊泳速度を上げる（issue #146）。捕獲直後（アニメーション完了を
+      // 待たず）から速くなるよう、caughtAtの有無だけで数える
+      const remainingCount = previousEntities.filter((entity) => entity.caughtAt === null).length
+      const speedMultiplier = computeSpeedMultiplier(remainingCount, count)
       const nextEntities = previousEntities
         .filter((entity) => entity.caughtAt === null || now - entity.caughtAt < CATCH_ANIMATION_DURATION_MS)
         .map((entity) =>
@@ -84,6 +95,7 @@ export function useGoldfishSchool(count: number): UseGoldfishSchoolResult {
                   previousEntities
                     .filter((other) => other.id !== entity.id && other.caughtAt === null)
                     .map((other) => ({ xPercent: other.state.xPercent, yPercent: other.state.yPercent })),
+                  speedMultiplier,
                 ),
               }
             : entity,
@@ -95,7 +107,7 @@ export function useGoldfishSchool(count: number): UseGoldfishSchoolResult {
 
     frameId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frameId)
-  }, [])
+  }, [count])
 
   // 捕獲判定・状態更新ロジックはこのフック内に閉じ、常に最新のentitiesRefを参照するため
   // 依存配列を空にできる。呼び出し側（Poiの掬うジェスチャーコールバック）に安定した
