@@ -14,7 +14,7 @@ export interface GoldfishState {
 }
 
 const MARGIN_PERCENT = 10
-const SPEED_PERCENT_PER_SEC = 5 // 前進速度
+const SPEED_PERCENT_PER_SEC = 3 // 前進速度（全匹が残っている開始時点の速度。issue #146で従来の5から低速化）
 const WOBBLE_DEG = 15 // 前方を中心とした左右の振れ幅
 const WOBBLE_SPEED_RAD_PER_SEC = 2.5 // 振れの速さ
 const TURN_SMOOTHING_PER_SEC = 0.05 // 1秒あたり、見た目の角度の残差がこの割合まで小さくなるよう追従する
@@ -25,6 +25,21 @@ const FLEE_SPEED_MULTIPLIER = 3 // 逃走中は通常の何倍の速さで泳ぐ
 const FLEE_DURATION_MS = 1500 // 逃走が続く時間
 const COLLISION_AVOIDANCE_RADIUS_PERCENT = 10 // 他の金魚がこの距離未満に近づくと回避行動を取る（issue #122）
 const COLLISION_AVOIDANCE_TURN_RATE_DEG_PER_SEC = 90 // 回避時の方向転換の速さの上限。大袈裟な急旋回に見えないようにする（issue #122）
+// 残り1匹になった時点での速度倍率の上限（issue #146）。捕獲が進むほど残りの金魚が
+// だんだん速くなり、終盤ほど手応え・緊張感が増すようにする
+export const SPEED_MULTIPLIER_AT_LAST_FISH = 2.5
+
+// 残り匹数（remainingCount）と開始時の総匹数（totalCount）から、遊泳速度に掛け合わせる
+// 倍率を算出する（issue #146）。全匹残っている状態を1倍、残り1匹の状態を
+// SPEED_MULTIPLIER_AT_LAST_FISHとし、その間は捕獲数に応じて線形に補間する。
+// 総匹数が1匹以下、または残り0匹（全滅後の最終フレーム等）の場合は上限倍率を返す
+export function computeSpeedMultiplier(remainingCount: number, totalCount: number): number {
+  if (totalCount <= 1 || remainingCount <= 0) {
+    return SPEED_MULTIPLIER_AT_LAST_FISH
+  }
+  const caughtRatio = Math.min(Math.max((totalCount - remainingCount) / (totalCount - 1), 0), 1)
+  return 1 + caughtRatio * (SPEED_MULTIPLIER_AT_LAST_FISH - 1)
+}
 
 function normalizeDeg(deg: number): number {
   return ((deg % 360) + 360) % 360
@@ -116,7 +131,9 @@ export function startFleeing(state: GoldfishState, threatPosition: ThreatPositio
 // （issue #122）。壁での転回・ランダムな方向転換とは異なり瞬時には反映せず、
 // COLLISION_AVOIDANCE_TURN_RATE_DEG_PER_SECを上限に少しずつ回頭する（大袈裟な
 // 急旋回に見えないようにするため）。逃走中は、脅威（ポイ）から逃げる方向を
-// 優先するため対象外とする
+// 優先するため対象外とする。
+// speedMultiplierには、残り匹数から算出した速度倍率（computeSpeedMultiplier参照）を
+// 渡す想定（issue #146）。通常時・逃走中どちらの速度にも掛け合わされる
 export function stepGoldfish(
   state: GoldfishState,
   dtSeconds: number,
@@ -124,6 +141,7 @@ export function stepGoldfish(
   seed: number,
   random: () => number = Math.random,
   others: readonly OtherGoldfishPosition[] = [],
+  speedMultiplier = 1,
 ): GoldfishState {
   const isFleeing = state.fleeCountdownMs > 0
   const fleeCountdownMs = Math.max(0, state.fleeCountdownMs - dtSeconds * 1000)
@@ -149,7 +167,8 @@ export function stepGoldfish(
 
   const wobbleDeg = WOBBLE_DEG * Math.sin((elapsedMs / 1000) * WOBBLE_SPEED_RAD_PER_SEC + seed * Math.PI * 2)
   const travelRad = ((baseHeading + wobbleDeg) * Math.PI) / 180
-  const speedPercentPerSec = isFleeing ? SPEED_PERCENT_PER_SEC * FLEE_SPEED_MULTIPLIER : SPEED_PERCENT_PER_SEC
+  const speedPercentPerSec =
+    (isFleeing ? SPEED_PERCENT_PER_SEC * FLEE_SPEED_MULTIPLIER : SPEED_PERCENT_PER_SEC) * speedMultiplier
 
   let nextX = state.xPercent + Math.cos(travelRad) * speedPercentPerSec * dtSeconds
   let nextY = state.yPercent + Math.sin(travelRad) * speedPercentPerSec * dtSeconds
