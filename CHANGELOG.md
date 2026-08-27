@@ -1,3 +1,10 @@
+# [1.39.0](https://github.com/uchi-stock/kingyo/compare/v1.38.1...v1.39.0) (2026-08-27)
+
+
+### Features
+
+* **share:** ページ共有用のQRコード・URLコピーボタンを追加 ([#145](https://github.com/uchi-stock/kingyo/issues/145)) ([56f7432](https://github.com/uchi-stock/kingyo/commit/56f743249f8e75d58eda73d140b0a5f1eb759656)), closes [#144](https://github.com/uchi-stock/kingyo/issues/144)
+
 ## [1.38.1](https://github.com/uchi-stock/kingyo/compare/v1.38.0...v1.38.1) (2026-08-25)
 
 
