@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import catchSuccessSoundUrl from './assets/sounds/catch-success.mp3';
+import catchSuccessSoundUrl from './assets/sounds/success.mp3';
 import poiTearSoundUrl from './assets/sounds/poi-tear.mp3';
-import scoopFailSoundUrl from './assets/sounds/scoop-fail.mp3';
+import scoopFailSoundUrl from './assets/sounds/failure.mp3';
 import { usePlaySound } from './audio/usePlaySound';
 import { BuildInfo } from './components/BuildInfo';
 import { CameraBackground } from './components/CameraBackground';

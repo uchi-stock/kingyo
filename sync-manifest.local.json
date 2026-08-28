@@ -4,6 +4,8 @@
     { "source": "shared/ui/bootstrap-theme.css", "target": "frontend/src/bootstrap-theme.css" },
     { "source": "shared/pwa/sw.js", "target": "frontend/public/sw.js" },
     { "source": "shared/pwa/ServiceWorkerRegistration.jsx", "target": "frontend/src/components/ServiceWorkerRegistration.jsx" },
-    { "source": "shared/pwa/UpdateNotifier.jsx", "target": "frontend/src/components/UpdateNotifier.jsx" }
+    { "source": "shared/pwa/UpdateNotifier.jsx", "target": "frontend/src/components/UpdateNotifier.jsx" },
+    { "source": "shared/sfx/success.mp3", "target": "frontend/src/assets/sounds/success.mp3" },
+    { "source": "shared/sfx/failure.mp3", "target": "frontend/src/assets/sounds/failure.mp3" }
   ]
 }
