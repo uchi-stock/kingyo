@@ -483,9 +483,9 @@ describe('App', () => {
 
     // 位置的には捕獲できるはずだが、勢いがよすぎるためポイが破れて失敗として扱われる
     await waitFor(() => {
-      expect(playCountFor(playCountsBySrc, 'scoop-fail')).toBeGreaterThan(1);
+      expect(playCountFor(playCountsBySrc, 'failure')).toBeGreaterThan(1);
     });
-    expect(playCountFor(playCountsBySrc, 'catch-success')).toBe(1);
+    expect(playCountFor(playCountsBySrc, 'success')).toBe(1);
     expect(playCountFor(playCountsBySrc, 'poi-tear')).toBeGreaterThan(1);
     expect(screen.getAllByTestId('goldfish')).toHaveLength(GOLDFISH_COUNT);
     expect(screen.getByTestId('poi-marker').tagName).toBe('IMG');
@@ -503,7 +503,7 @@ describe('App', () => {
     });
   });
 
-  it('金魚の捕獲に成功すると、専用の効果音（catch-success.mp3）が再生される（issue #66）', async () => {
+  it('金魚の捕獲に成功すると、専用の効果音（success.mp3）が再生される（issue #66）', async () => {
     setUpMatchingPondAndViewport();
     const playCountsBySrc = mockAudioPlayCounts();
 
@@ -524,13 +524,13 @@ describe('App', () => {
 
     // 最初のpointerdownによるアンロック分（issue #73）の1回を超えて再生されたことを確認する
     await waitFor(() => {
-      expect(playCountFor(playCountsBySrc, 'catch-success')).toBeGreaterThan(1);
+      expect(playCountFor(playCountsBySrc, 'success')).toBeGreaterThan(1);
     });
-    // 失敗専用の効果音（scoop-fail.mp3）はアンロック分の1回のみで、成功時には鳴らない（issue #68）
-    expect(playCountFor(playCountsBySrc, 'scoop-fail')).toBe(1);
+    // 失敗専用の効果音（failure.mp3）はアンロック分の1回のみで、成功時には鳴らない（issue #68）
+    expect(playCountFor(playCountsBySrc, 'failure')).toBe(1);
   });
 
-  it('掬いに失敗すると、失敗専用の効果音（scoop-fail.mp3）が再生され、捕獲成功専用の効果音（catch-success.mp3）は再生されない（issue #66, #68）', async () => {
+  it('掬いに失敗すると、失敗専用の効果音（failure.mp3）が再生され、捕獲成功専用の効果音（success.mp3）は再生されない（issue #66, #68）', async () => {
     setUpMatchingPondAndViewport();
     const playCountsBySrc = mockAudioPlayCounts();
 
@@ -549,9 +549,9 @@ describe('App', () => {
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
 
     await waitFor(() => {
-      expect(playCountFor(playCountsBySrc, 'scoop-fail')).toBeGreaterThan(1);
+      expect(playCountFor(playCountsBySrc, 'failure')).toBeGreaterThan(1);
     });
-    expect(playCountFor(playCountsBySrc, 'catch-success')).toBe(1);
+    expect(playCountFor(playCountsBySrc, 'success')).toBe(1);
   });
 
   it('ポイの中心で金魚を捕獲しても、破れ専用の効果音（poi-tear.mp3）は再生されない（issue #69, #132）', async () => {
@@ -576,7 +576,7 @@ describe('App', () => {
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 20 }));
 
     await waitFor(() => {
-      expect(playCountFor(playCountsBySrc, 'catch-success')).toBeGreaterThan(1);
+      expect(playCountFor(playCountsBySrc, 'success')).toBeGreaterThan(1);
     });
     expect(playCountFor(playCountsBySrc, 'poi-tear')).toBe(1);
   });
