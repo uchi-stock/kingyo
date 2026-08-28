@@ -17,7 +17,12 @@ export interface GoldfishSchoolProps {
 
 // 金魚の状態（位置・更新）はApp側でuseGoldfishSchoolにより保持し、本コンポーネントは
 // 受け取ったposeを描画するだけの表示専用コンポーネントとする。掬うジェスチャーによる
-// 捕獲判定にはポイ側（App）も金魚の位置情報が必要なため、Appに状態を集約した（issue #44）
+// 捕獲判定にはポイ側（App）も金魚の位置情報が必要なため、Appに状態を集約した（issue #44）。
+// ポイのワールドパンオフセット（issue #72、センサー操作中はポイを画面中央に固定表示する
+// 代わりに金魚側をパンさせる仕組み）は、useGoldfishSchool側で既にxPercent/yPercentへ
+// 織り込み済みのposeを受け取るだけであり、本コンポーネント自体はオフセットの存在を
+// 意識しない（refをレンダー中に読むとReactのルール違反になるため、rAFループが既に
+// 存在するuseGoldfishSchool側で適用する設計にした）
 export function GoldfishSchool({ goldfish }: GoldfishSchoolProps) {
   return (
     <div

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { findCatchableGoldfish, type CatchResult, type ViewportPosition } from './catchGoldfish'
 import { findNearestGoldfishToFlee } from './fleeGoldfish'
 import {
@@ -8,6 +8,7 @@ import {
   stepGoldfish,
   type GoldfishState,
 } from './goldfishSwim'
+import { CENTER_POI_MOTION_STATE, type PoiMotionState } from '../motion/poiMotion'
 
 const CATCH_ANIMATION_DURATION_MS = 450 // 捕獲後、拡大しながらフェードアウトする演出の表示時間
 
@@ -33,8 +34,21 @@ function createEntities(count: number): GoldfishEntity[] {
   })
 }
 
-function toPoses(entities: GoldfishEntity[]): GoldfishPose[] {
-  return entities.map((entity) => ({ id: entity.id, isCaught: entity.caughtAt !== null, ...entity.state }))
+// worldOffsetのxPercent/yPercentは中心50を基準とした0-100の値で、そのままvw/vh単位の
+// オフセットとして解釈する（issue #72）。符号を反転して適用するのは、ポイモーションの
+// 出力方向（スマホを動かした方向）と、金魚が中央（ポイ）へ寄ってくる見た目の移動方向が
+// 逆になるため。捕獲・衝突回避等の判定に使う内部状態（entitiesRef）には適用せず、
+// 表示専用に公開するposeにのみ適用する
+function toPoses(entities: GoldfishEntity[], worldOffset: PoiMotionState): GoldfishPose[] {
+  const offsetXVw = 50 - worldOffset.xPercent
+  const offsetYVh = 50 - worldOffset.yPercent
+  return entities.map((entity) => ({
+    id: entity.id,
+    isCaught: entity.caughtAt !== null,
+    ...entity.state,
+    xPercent: entity.state.xPercent + offsetXVw,
+    yPercent: entity.state.yPercent + offsetYVh,
+  }))
 }
 
 export interface UseGoldfishSchoolResult {
@@ -54,10 +68,19 @@ export interface UseGoldfishSchoolResult {
 //
 // 捕獲した金魚は即座に配列から除去せず、拡大・フェードアウトの演出時間（CATCH_ANIMATION_DURATION_MS）
 // が経過するまで配列に残す（遊泳は停止する）。演出時間が経過したフレームで実際に除去する（issue #52）。
-export function useGoldfishSchool(count: number): UseGoldfishSchoolResult {
+//
+// worldOffsetRefを渡すと、公開するposeのxPercent/yPercentへワールドパンオフセット
+// （issue #72）を織り込む。Poi側（usePoiMotion）が同じrefへ毎フレーム書き込む値を
+// 読み取るだけで、捕獲・衝突回避等の判定に使う内部状態（entitiesRef）には影響しない
+export function useGoldfishSchool(
+  count: number,
+  worldOffsetRef?: RefObject<PoiMotionState>,
+): UseGoldfishSchoolResult {
   const [initialEntities] = useState(() => createEntities(count))
   const entitiesRef = useRef<GoldfishEntity[]>(initialEntities)
-  const [goldfish, setGoldfish] = useState<GoldfishPose[]>(() => toPoses(initialEntities))
+  // マウント直後はまだセンサー値の反映（usePoiMotion側のrAFループ）が一度も走っていないため、
+  // worldOffsetRefの初期値は必ず中立（CENTER_POI_MOTION_STATE）であり、refを読まずに済む
+  const [goldfish, setGoldfish] = useState<GoldfishPose[]>(() => toPoses(initialEntities, CENTER_POI_MOTION_STATE))
 
   useEffect(() => {
     const startTime = performance.now()
@@ -101,13 +124,13 @@ export function useGoldfishSchool(count: number): UseGoldfishSchoolResult {
             : entity,
         )
       entitiesRef.current = nextEntities
-      setGoldfish(toPoses(nextEntities))
+      setGoldfish(toPoses(nextEntities, worldOffsetRef?.current ?? CENTER_POI_MOTION_STATE))
       frameId = requestAnimationFrame(tick)
     }
 
     frameId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frameId)
-  }, [count])
+  }, [count, worldOffsetRef])
 
   // 捕獲判定・状態更新ロジックはこのフック内に閉じ、常に最新のentitiesRefを参照するため
   // 依存配列を空にできる。呼び出し側（Poiの掬うジェスチャーコールバック）に安定した
@@ -128,9 +151,9 @@ export function useGoldfishSchool(count: number): UseGoldfishSchoolResult {
       entity.id === result.id ? { ...entity, caughtAt } : entity,
     )
     entitiesRef.current = nextEntities
-    setGoldfish(toPoses(nextEntities))
+    setGoldfish(toPoses(nextEntities, worldOffsetRef?.current ?? CENTER_POI_MOTION_STATE))
     return result
-  }, [])
+  }, [worldOffsetRef])
 
   // 掬い損ねた際、ポイの位置から一定範囲内にいる最も近い金魚を、ポイから遠ざかる方向へ
   // 高速で逃走させる（issue #53）。catchNearestGoldfishと同様、常に最新のentitiesRefを
@@ -152,16 +175,16 @@ export function useGoldfishSchool(count: number): UseGoldfishSchoolResult {
         : entity,
     )
     entitiesRef.current = nextEntities
-    setGoldfish(toPoses(nextEntities))
-  }, [])
+    setGoldfish(toPoses(nextEntities, worldOffsetRef?.current ?? CENTER_POI_MOTION_STATE))
+  }, [worldOffsetRef])
 
   // リトライ時に金魚を初期配置へ戻す（issue #93）。catchNearestGoldfish等と同様、
   // 常に最新のentitiesRefを参照する安定した関数参照として公開する
   const resetGoldfish = useCallback(() => {
     const nextEntities = createEntities(count)
     entitiesRef.current = nextEntities
-    setGoldfish(toPoses(nextEntities))
-  }, [count])
+    setGoldfish(toPoses(nextEntities, worldOffsetRef?.current ?? CENTER_POI_MOTION_STATE))
+  }, [count, worldOffsetRef])
 
   return { goldfish, catchNearestGoldfish, startFleeingNearestGoldfish, resetGoldfish }
 }

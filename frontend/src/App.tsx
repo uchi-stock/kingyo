@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import catchSuccessSoundUrl from './assets/sounds/catch-success.mp3';
 import poiTearSoundUrl from './assets/sounds/poi-tear.mp3';
 import scoopFailSoundUrl from './assets/sounds/scoop-fail.mp3';
@@ -14,6 +14,7 @@ import UpdateNotifier from './components/UpdateNotifier';
 import type { ViewportPosition } from './goldfish/catchGoldfish';
 import { useGoldfishSchool } from './goldfish/useGoldfishSchool';
 import { vibrateCatchSuccess, vibrateGameOver } from './haptics/vibrate';
+import { CENTER_POI_MOTION_STATE, type PoiMotionState } from './motion/poiMotion';
 import type { ScoopIntensity } from './motion/scoopGesture';
 import { addRankingEntry, formatElapsedTime, loadRanking, type RankingEntry } from './ranking/ranking';
 import { useElapsedTimer } from './ranking/useElapsedTimer';
@@ -21,8 +22,18 @@ import { useElapsedTimer } from './ranking/useElapsedTimer';
 function App() {
   // 掬うジェスチャー（Poi）と金魚の位置判定を組み合わせて捕獲するため、
   // 金魚の状態をAppで保持し、両コンポーネントへ配線する（issue #44）
-  const { goldfish, catchNearestGoldfish, startFleeingNearestGoldfish, resetGoldfish } =
-    useGoldfishSchool(GOLDFISH_COUNT);
+  // ポイのワールドパンオフセット（issue #72）。センサー操作時、ポイは常に画面中央に
+  // 固定表示し、代わりに金魚側がこの値の分だけ逆方向へパンする。PoiとuseGoldfishSchool
+  // は互いを直接知らないため、共通の親であるここでrefを1つ生成し両方へ渡す。refの
+  // オブジェクト参照は安定するため、毎フレーム値が変わってもAppの再レンダーは増えない。
+  // Poi側（usePoiMotion）が書き込み、useGoldfishSchool側が既存の60fps rAFループ内
+  // （useEffectのコールバック内であり、Reactのレンダー中ではないため安全）で読み取り、
+  // 公開するposeのxPercent/yPercentへ織り込む
+  const poiWorldOffsetRef = useRef<PoiMotionState>(CENTER_POI_MOTION_STATE);
+  const { goldfish, catchNearestGoldfish, startFleeingNearestGoldfish, resetGoldfish } = useGoldfishSchool(
+    GOLDFISH_COUNT,
+    poiWorldOffsetRef,
+  );
   // ポイの中心で金魚を捕獲すると紙が破れ、以降は捕獲できなくなる（issue #45）
   const [isTorn, setIsTorn] = useState(false);
   // 掬うジェスチャーそのものの効果音（issue #48）はPoi.tsx側で鳴らすため、
@@ -247,7 +258,7 @@ function App() {
               {/* ポイ操作エリアの高さは残り領域いっぱいに可変とし、画面全体を100dvh内に収めて
                   縦スクロールを発生させない（issue #101） */}
               <div className="flex-grow-1" style={{ minHeight: 0 }}>
-                <Poi onScoop={handleScoop} isTorn={isTorn} />
+                <Poi onScoop={handleScoop} isTorn={isTorn} worldOffsetRef={poiWorldOffsetRef} />
               </div>
             </main>
           </>
