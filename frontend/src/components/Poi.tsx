@@ -1,7 +1,8 @@
-import type { PointerEvent as ReactPointerEvent } from 'react'
+import type { PointerEvent as ReactPointerEvent, RefObject } from 'react'
 import { memo, useEffect, useRef, useState } from 'react'
 import poiTorn from '../assets/poi/poi-torn.png'
 import type { ViewportPosition } from '../goldfish/catchGoldfish'
+import type { PoiMotionState } from '../motion/poiMotion'
 import { usePoiMotion } from '../motion/usePoiMotion'
 import type { ScoopIntensity } from '../motion/scoopGesture'
 
@@ -12,10 +13,13 @@ export interface PoiProps {
   // ポイの中心で金魚を捕獲し紙が破れた状態かどうか（issue #45）。
   // 破れた状態ではマーカー表示を破れ画像に切り替える
   isTorn?: boolean
+  // ワールドパンオフセット共有用のref（issue #72）。App.tsxで生成され、
+  // GoldfishSchoolとも共有する。usePoiMotionへそのまま渡す
+  worldOffsetRef?: RefObject<PoiMotionState>
 }
 
-function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
-  const { permission, pose, debug, setPositionFromPointer } = usePoiMotion(isTorn)
+function PoiComponent({ onScoop, isTorn = false, worldOffsetRef }: PoiProps) {
+  const { permission, pose, debug, setPositionFromPointer } = usePoiMotion(isTorn, worldOffsetRef)
   const pondRef = useRef<HTMLDivElement>(null)
   const [pondSize, setPondSize] = useState({ width: 0, height: 0 })
   const showManualControl = permission === 'denied' || permission === 'unsupported'
@@ -70,13 +74,24 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
     )
   }
 
-  const offsetXPx = ((pose.xPercent - 50) / 100) * pondSize.width
-  const offsetYPx = ((pose.yPercent - 50) / 100) * pondSize.height
+  // フォールバック操作時（showManualControl、issue #124）のみ使う、ポイ自身の
+  // pond相対オンスクリーン位置。ポインタでポイを直接動かす既存の意味のまま
+  const manualOffsetXPx = ((pose.xPercent - 50) / 100) * pondSize.width
+  const manualOffsetYPx = ((pose.yPercent - 50) / 100) * pondSize.height
 
-  // 掬うジェスチャーが検出された瞬間のポイの位置を、金魚の捕獲判定へ渡す（issue #44）。
-  // 金魚の位置はビューポート全体に対するvw/vhで管理されているのに対し、ポイの位置は
-  // pond要素（ページ内の一部領域）に対する百分率のため、pondの実際の画面上の矩形を
-  // 使って座標系を揃える。
+  // センサー操作時（issue #72）は、ポイ自体は画面中央に固定表示し、代わりに金魚側が
+  // このワールドパンオフセット（中心50を基準としたvw/vh単位、GoldfishSchoolと同じ解釈）
+  // の分だけ逆方向へパンする。捕獲・逃走判定の実効位置計算にのみ使い、マーカー描画には
+  // 使わない（マーカーは常に中央固定のため）
+  const worldOffsetXVw = pose.xPercent - 50
+  const worldOffsetYVh = pose.yPercent - 50
+
+  // 掬うジェスチャーが検出された瞬間のポイの実効ビューポート位置を、金魚の捕獲判定へ
+  // 渡す（issue #44）。フォールバック操作時はポイ自身のpond内位置（従来通り）、
+  // センサー操作時はポイの表示位置（pond中心固定）にワールドパンオフセットを加えた
+  // 「金魚のワールド座標系での実効位置」を使う（issue #72）。GoldfishSchool側の
+  // 表示シフト（ポイモーション出力の符号を反転）と対になる符号（反転しない）で
+  // 適用することで、金魚の生座標と正しく比較できる
   useEffect(() => {
     if (debug.scoopCount === previousScoopCountRef.current) {
       return
@@ -88,16 +103,25 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
       return
     }
     const rect = pond.getBoundingClientRect()
-    const poiViewportX = rect.left + rect.width / 2 + offsetXPx
-    const poiViewportY = rect.top + rect.height / 2 + offsetYPx
-    onScoop(
-      {
-        xVw: (poiViewportX / window.innerWidth) * 100,
-        yVh: (poiViewportY / window.innerHeight) * 100,
-      },
-      debug.lastScoopIntensity,
-    )
-  }, [debug.scoopCount, debug.lastScoopIntensity, offsetXPx, offsetYPx, onScoop])
+    const pondCenterXVw = ((rect.left + rect.width / 2) / window.innerWidth) * 100
+    const pondCenterYVh = ((rect.top + rect.height / 2) / window.innerHeight) * 100
+    const effectiveXVw = showManualControl
+      ? pondCenterXVw + ((manualOffsetXPx / window.innerWidth) * 100)
+      : pondCenterXVw + worldOffsetXVw
+    const effectiveYVh = showManualControl
+      ? pondCenterYVh + ((manualOffsetYPx / window.innerHeight) * 100)
+      : pondCenterYVh + worldOffsetYVh
+    onScoop({ xVw: effectiveXVw, yVh: effectiveYVh }, debug.lastScoopIntensity)
+  }, [
+    debug.scoopCount,
+    debug.lastScoopIntensity,
+    manualOffsetXPx,
+    manualOffsetYPx,
+    worldOffsetXVw,
+    worldOffsetYVh,
+    showManualControl,
+    onScoop,
+  ])
 
   return (
     <div
@@ -120,7 +144,12 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
           style={{
             // 実機フィードバックを踏まえ、一回り大きくした（issue #87。従来4rem）
             width: '5rem',
-            transform: `translate(-50%, -50%) translate(${offsetXPx}px, ${offsetYPx}px) rotate(${pose.angleDeg}deg)`,
+            // センサー操作時（issue #72）はポイ自体を画面中央に固定表示し、金魚側を
+            // パンさせる（GoldfishSchool参照）。フォールバック操作時（showManualControl、
+            // issue #124）は従来通りポイ自身をpond内で動かす
+            transform: showManualControl
+              ? `translate(-50%, -50%) translate(${manualOffsetXPx}px, ${manualOffsetYPx}px) rotate(${pose.angleDeg}deg)`
+              : `translate(-50%, -50%) rotate(${pose.angleDeg}deg)`,
           }}
         />
       ) : (
@@ -133,7 +162,9 @@ function PoiComponent({ onScoop, isTorn = false }: PoiProps) {
             height: '5rem',
             // 破れた状態のマーカー（poiTorn画像）の輪の色（#F4D32C）と揃える（issue #62）
             borderColor: '#F4D32C',
-            transform: `translate(-50%, -50%) translate(${offsetXPx}px, ${offsetYPx}px) rotate(${pose.angleDeg}deg)`,
+            transform: showManualControl
+              ? `translate(-50%, -50%) translate(${manualOffsetXPx}px, ${manualOffsetYPx}px) rotate(${pose.angleDeg}deg)`
+              : `translate(-50%, -50%) rotate(${pose.angleDeg}deg)`,
           }}
           aria-hidden="true"
         />
