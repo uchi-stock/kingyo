@@ -1,3 +1,10 @@
+# [1.41.0](https://github.com/uchi-stock/kingyo/compare/v1.40.0...v1.41.0) (2026-08-28)
+
+
+### Features
+
+* **poi:** AT対応でポイを画面中央固定にし金魚側をパンさせる方式へ変更 ([#149](https://github.com/uchi-stock/kingyo/issues/149)) ([6afbdf0](https://github.com/uchi-stock/kingyo/commit/6afbdf0715a47d0fa11a5c819da6f88b3b9bef45)), closes [#72](https://github.com/uchi-stock/kingyo/issues/72)
+
 # [1.40.0](https://github.com/uchi-stock/kingyo/compare/v1.39.0...v1.40.0) (2026-08-27)
 
 
