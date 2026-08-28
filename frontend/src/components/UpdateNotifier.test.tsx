@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { UpdateNotifier } from './UpdateNotifier'
+import UpdateNotifier from './UpdateNotifier'
 
 const originalServiceWorker = 'serviceWorker' in navigator ? navigator.serviceWorker : undefined
 const originalLocation = window.location
@@ -55,7 +55,7 @@ describe('UpdateNotifier', () => {
   it('初期状態では何も表示しない', () => {
     mockServiceWorkerContainer(true)
     render(<UpdateNotifier />)
-    expect(screen.queryByTestId('update-notifier')).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('ページ読み込み時点で既にService Workerの制御下にあった場合、controllerchangeで更新バナーを表示する（issue #135）', () => {
@@ -64,7 +64,7 @@ describe('UpdateNotifier', () => {
 
     fireControllerChange()
 
-    expect(screen.getByTestId('update-notifier')).toHaveTextContent('新しいバージョンがあります')
+    expect(screen.getByRole('alert')).toHaveTextContent('新しいバージョンがあります')
   })
 
   it('初回インストール（読み込み時点でcontrollerが無い）の場合は、controllerchangeが発生しても更新バナーを表示しない（issue #135）', () => {
@@ -73,7 +73,7 @@ describe('UpdateNotifier', () => {
 
     fireControllerChange()
 
-    expect(screen.queryByTestId('update-notifier')).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('更新するボタンを押すと、画面がリロードされる（issue #135）', () => {
@@ -83,7 +83,7 @@ describe('UpdateNotifier', () => {
     render(<UpdateNotifier />)
     fireControllerChange()
 
-    fireEvent.click(screen.getByTestId('update-reload-button'))
+    fireEvent.click(screen.getByRole('button', { name: '更新する' }))
 
     expect(reload).toHaveBeenCalledTimes(1)
   })
@@ -93,6 +93,6 @@ describe('UpdateNotifier', () => {
     delete navigator.serviceWorker
 
     expect(() => render(<UpdateNotifier />)).not.toThrow()
-    expect(screen.queryByTestId('update-notifier')).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })

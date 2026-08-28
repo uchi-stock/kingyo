@@ -10,7 +10,7 @@ import { Poi } from './components/Poi';
 import { RankingList } from './components/RankingList';
 import ServiceWorkerRegistration from './components/ServiceWorkerRegistration';
 import { ShareButton } from './components/ShareButton';
-import { UpdateNotifier } from './components/UpdateNotifier';
+import UpdateNotifier from './components/UpdateNotifier';
 import type { ViewportPosition } from './goldfish/catchGoldfish';
 import { useGoldfishSchool } from './goldfish/useGoldfishSchool';
 import { vibrateCatchSuccess, vibrateGameOver } from './haptics/vibrate';
