@@ -34,6 +34,13 @@ function createEntities(count: number): GoldfishEntity[] {
   })
 }
 
+// ベストタイミングでの捕獲ボーナス（issue #153）で1匹追加する際に使う。初期配置の
+// createEntitiesと異なり、他の匹と被らない配置である必要はないためランダムなseedでよい
+function createBonusEntity(id: number): GoldfishEntity {
+  const seed = Math.random()
+  return { id, seed, state: createInitialGoldfishState(seed), caughtAt: null }
+}
+
 // worldOffsetのxPercent/yPercentは中心50を基準とした0-100の値で、そのままvw/vh単位の
 // オフセットとして解釈する（issue #72）。符号を反転して適用するのは、ポイモーションの
 // 出力方向（スマホを動かした方向）と、金魚が中央（ポイ）へ寄ってくる見た目の移動方向が
@@ -72,12 +79,18 @@ export interface UseGoldfishSchoolResult {
 // worldOffsetRefを渡すと、公開するposeのxPercent/yPercentへワールドパンオフセット
 // （issue #72）を織り込む。Poi側（usePoiMotion）が同じrefへ毎フレーム書き込む値を
 // 読み取るだけで、捕獲・衝突回避等の判定に使う内部状態（entitiesRef）には影響しない
+//
+// ベストタイミング（画面中央付近）での捕獲は、新しい金魚を1匹追加するボーナス対象
+// （issue #153）。追加された金魚は他の匹と同様にentitiesRefで管理され、捕獲対象にもなる
 export function useGoldfishSchool(
   count: number,
   worldOffsetRef?: RefObject<PoiMotionState>,
 ): UseGoldfishSchoolResult {
   const [initialEntities] = useState(() => createEntities(count))
   const entitiesRef = useRef<GoldfishEntity[]>(initialEntities)
+  // ベストタイミングボーナス（issue #153）で追加する金魚に振る、既存と衝突しないid。
+  // 初期配置がid 0〜count-1を使い切っているため、countから始める
+  const nextBonusIdRef = useRef(count)
   // マウント直後はまだセンサー値の反映（usePoiMotion側のrAFループ）が一度も走っていないため、
   // worldOffsetRefの初期値は必ず中立（CENTER_POI_MOTION_STATE）であり、refを読まずに済む
   const [goldfish, setGoldfish] = useState<GoldfishPose[]>(() => toPoses(initialEntities, CENTER_POI_MOTION_STATE))
@@ -147,9 +160,15 @@ export function useGoldfishSchool(
       return null
     }
     const caughtAt = performance.now()
-    const nextEntities = entitiesRef.current.map((entity) =>
+    const caughtEntities = entitiesRef.current.map((entity) =>
       entity.id === result.id ? { ...entity, caughtAt } : entity,
     )
+    // ベストタイミング（中心付近）での捕獲は、新しい金魚を1匹追加するボーナス対象
+    // （issue #153）。捕獲・衝突回避等の判定には影響せず、次フレーム以降は他の金魚と
+    // 同様に泳ぎ始める
+    const nextEntities = result.isBestTiming
+      ? [...caughtEntities, createBonusEntity(nextBonusIdRef.current++)]
+      : caughtEntities
     entitiesRef.current = nextEntities
     setGoldfish(toPoses(nextEntities, worldOffsetRef?.current ?? CENTER_POI_MOTION_STATE))
     return result
@@ -183,6 +202,7 @@ export function useGoldfishSchool(
   const resetGoldfish = useCallback(() => {
     const nextEntities = createEntities(count)
     entitiesRef.current = nextEntities
+    nextBonusIdRef.current = count
     setGoldfish(toPoses(nextEntities, worldOffsetRef?.current ?? CENTER_POI_MOTION_STATE))
   }, [count, worldOffsetRef])
 

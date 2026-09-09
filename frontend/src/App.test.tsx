@@ -47,6 +47,11 @@ function pointerAt(xPercent: number, yPercent: number): { clientX: number; clien
   return { clientX: 200 * (xPercent / 100), clientY: 100 * (yPercent / 100) };
 }
 
+// 金魚のちょうど中心（距離0）を狙うと、ベストタイミングボーナス（issue #153）が発生し
+// 金魚が1匹追加されてしまう。捕獲の成否自体を検証したいだけのテストでは、捕獲半径（10）
+// 以内かつベストタイミング判定範囲（3）より外側になるようこのオフセットをx方向へ加える
+const CATCH_WITHOUT_BONUS_OFFSET_VW = 4
+
 // GoldfishSchoolの`translate(XXvw, YYvh) ...`から数値部分を取り出す（issue #53の移動量検証用）
 function parseTranslateVwVh(transform: string): { xVw: number; yVh: number } {
   const match = transform.match(/translate\(([-\d.]+)vw, ([-\d.]+)vh\)/);
@@ -65,7 +70,7 @@ async function catchAllGoldfish(pond: HTMLElement, nowRef: { current: number }) 
   for (let remaining = GOLDFISH_COUNT; remaining > 0; remaining -= 1) {
     const target = screen.getAllByTestId('goldfish')[0];
     const { xVw, yVh } = parseTranslateVwVh(target.style.transform);
-    fireEvent.pointerDown(pond, pointerAt(xVw, yVh));
+    fireEvent.pointerDown(pond, pointerAt(xVw + CATCH_WITHOUT_BONUS_OFFSET_VW, yVh));
 
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));
     nowRef.current += 50;
@@ -207,7 +212,7 @@ describe('App', () => {
     // 1匹目の金魚（id=0）の初期位置にポイを合わせれば、捕獲半径内に収まる
     const { xPercent, yPercent } = goldfishInitialPosition(0);
     const pond = screen.getByTestId('pond');
-    fireEvent.pointerDown(pond, pointerAt(xPercent, yPercent));
+    fireEvent.pointerDown(pond, pointerAt(xPercent + CATCH_WITHOUT_BONUS_OFFSET_VW, yPercent));
 
     now += 50;
     fireEvent(window, new DeviceOrientationEvent('deviceorientation', { beta: 0 }));

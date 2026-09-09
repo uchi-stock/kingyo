@@ -1,4 +1,8 @@
 const CATCH_RADIUS_VW = 10 // ポイと金魚の中心間距離がこれ以内なら捕獲判定とする
+// ポイと金魚の中心間距離がこれ以内での捕獲を「ベストタイミング」とする（issue #153）。
+// CATCH_RADIUS_VWより十分小さい値にし、狙って中心付近を捕らえた場合のみボーナスが
+// 発生するようにする
+const BEST_TIMING_RADIUS_VW = 3
 
 export interface ViewportPosition {
   xVw: number
@@ -13,6 +17,9 @@ export interface CatchableGoldfish {
 
 export interface CatchResult {
   id: number
+  // ベストタイミング（中心付近）での捕獲だったか（issue #153）。trueの場合、
+  // 呼び出し側で新しい金魚を1匹追加するボーナスの対象になる
+  isBestTiming: boolean
 }
 
 // ポイの位置（ビューポート相対のvw/vh）と金魚の一覧（xPercent/yPercentはvw/vh基準。
@@ -41,5 +48,5 @@ export function findCatchableGoldfish(
   if (nearestId === null) {
     return null
   }
-  return { id: nearestId }
+  return { id: nearestId, isBestTiming: nearestDistance <= BEST_TIMING_RADIUS_VW }
 }
