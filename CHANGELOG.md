@@ -1,3 +1,10 @@
+# [1.42.0](https://github.com/uchi-stock/kingyo/compare/v1.41.0...v1.42.0) (2026-09-09)
+
+
+### Features
+
+* **goldfish:** ベストタイミングで捕獲すると金魚が1匹増える ([#154](https://github.com/uchi-stock/kingyo/issues/154)) ([6cc180e](https://github.com/uchi-stock/kingyo/commit/6cc180eff0020fe1ab2791af33d7bd1e8a37d5c9))
+
 # [1.41.0](https://github.com/uchi-stock/kingyo/compare/v1.40.0...v1.41.0) (2026-08-28)
 
 
