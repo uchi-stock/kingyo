@@ -1,3 +1,10 @@
+## [1.42.1](https://github.com/uchi-stock/kingyo/compare/v1.42.0...v1.42.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **poi:** ポイ中央固定＋金魚側パン方式をやめ、ポイ自体が動く方式へ戻す ([#157](https://github.com/uchi-stock/kingyo/issues/157)) ([cbdbfbe](https://github.com/uchi-stock/kingyo/commit/cbdbfbe47a7e263762266c25536e92c845a33ea2))
+
 # [1.42.0](https://github.com/uchi-stock/kingyo/compare/v1.41.0...v1.42.0) (2026-09-09)
 
 

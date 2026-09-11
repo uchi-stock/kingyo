@@ -1,7 +1,7 @@
 {
   "name": "kingyo",
   "private": true,
-  "version": "1.42.0",
+  "version": "1.42.1",
   "workspaces": [
     "frontend",
     "backend"
