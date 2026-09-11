@@ -72,17 +72,7 @@ export interface UsePoiMotionResult {
 // isTorn（issue #45: ポイの中心での捕獲）が真になった以降は、ゲームオーバー表現として
 // 位置・角度操作、および掬うジェスチャー検出を一切受け付けなくなる（issue #79）。
 // 金魚側のアニメーションはこのフックと独立しているため、この凍結の影響を受けない。
-//
-// worldOffsetRefを渡すと、センサー操作中（devicemotionのrAFループ内、permissionが
-// 'granted'の間のみ）毎フレーム現在の位置状態をこのrefへも書き込む（issue #72）。
-// Poiと兄弟コンポーネントであるGoldfishSchool側で同じ値を「ワールドパンオフセット」
-// として参照するための共有経路。refはオブジェクト参照が安定するため、Reactの
-// 再レンダーを増やさずに毎フレームの値を共有できる。センサー操作が使えない環境
-// （showManualControl、issue #124）では、setPositionFromPointerで動かす値は
-// 「ポインタでポイ自身を直接動かす」既存の意味のまま使われ、このrefへは書き込まない
-// （呼び出し元がrefの初期値を中立値にしておくことで、金魚側は常にパンなし＝
-// 既存の見た目のまま描画される）
-export function usePoiMotion(isTorn = false, worldOffsetRef?: { current: PoiMotionState }): UsePoiMotionResult {
+export function usePoiMotion(isTorn = false): UsePoiMotionResult {
   const [permission, setPermission] = useState<MotionPermissionState>(computeInitialPermission)
   const [motionState, setMotionState] = useState<PoiMotionState>(CENTER_POI_MOTION_STATE)
   const [angleDeg, setAngleDeg] = useState(0)
@@ -210,13 +200,7 @@ export function usePoiMotion(isTorn = false, worldOffsetRef?: { current: PoiMoti
       // 一時的な変化が混入するため、位置操作への反映のみをゼロ扱いにして抑制する。
       // 平滑化自体は継続するため、抑制解除後は最新のセンサー値へ即座に復帰する（issue #42）
       const accelerationForPosition = rotationSuppressedRef.current ? { x: 0, y: 0 } : smoothedAccelerationRef.current
-      setMotionState((state) => {
-        const next = stepPoiMotion(state, accelerationForPosition, dtSeconds)
-        if (worldOffsetRef) {
-          worldOffsetRef.current = next
-        }
-        return next
-      })
+      setMotionState((state) => stepPoiMotion(state, accelerationForPosition, dtSeconds))
       // devicemotionイベントが実際に届いているかを画面上で確認できるようにする
       // デバッグ用の状態（issue #14: 実機で位置が中央から全く動かない事象の原因切り分け）
       setDebug({ motionEventCount: motionEventCountRef.current, lastAcceleration: latestAccelerationRef.current })
@@ -229,7 +213,7 @@ export function usePoiMotion(isTorn = false, worldOffsetRef?: { current: PoiMoti
       window.removeEventListener('devicemotion', handleMotion)
       cancelAnimationFrame(frameId)
     }
-  }, [permission, isTorn, worldOffsetRef])
+  }, [permission, isTorn])
 
   const requestPermission = useCallback(async () => {
     const motionRequester = getPermissionRequester(
