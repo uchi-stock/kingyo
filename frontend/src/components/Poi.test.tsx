@@ -36,24 +36,22 @@ describe('Poi', () => {
     delete window.DeviceOrientationEvent.requestPermission
   })
 
-  it('requestPermissionを持たない環境（Android等）では、モーションセンサーの値をワールドパンオフセットに反映する（issue #72）', async () => {
+  it('requestPermissionを持たない環境（Android等）では、モーションセンサーの値をポイの位置に反映する', async () => {
     // jsdomはDeviceMotionEventをrequestPermissionなしのスタブとして持つため、デフォルトでgranted扱いになる
     mockPondSize(200, 100)
-    const worldOffsetRef = { current: { xPercent: 50, yPercent: 50 } }
-    render(<Poi worldOffsetRef={worldOffsetRef} />)
+    render(<Poi />)
     expect(
       screen.queryByText('加速度センサーが利用できないため、画面をなぞってポイを操作してください'),
     ).not.toBeInTheDocument()
 
+    const marker = screen.getByTestId('poi-marker')
     fireEvent(
       window,
       new DeviceMotionEvent('devicemotion', { acceleration: { x: 1, y: 0, z: 0 } }),
     )
 
-    // センサー操作時（issue #72）、ポイ自体は画面中央に固定表示し、位置の変化は
-    // ポイマーカーではなくワールドパンオフセット（金魚側のパンに使われる）へ反映される
     await waitFor(() => {
-      expect(worldOffsetRef.current.xPercent).not.toBe(50)
+      expect(marker.style.transform).not.toContain('translate(0px, 0px)')
     })
   })
 
@@ -67,25 +65,8 @@ describe('Poi', () => {
       new DeviceOrientationEvent('deviceorientation', { beta: 45, gamma: 30 }),
     )
 
-    // センサー操作時（issue #72）、ポイマーカーは常に画面中央に固定表示され、
-    // 位置オフセットのtranslateを一切持たない
-    expect(marker.style.transform).toBe('translate(-50%, -50%) rotate(30deg)')
-  })
-
-  it('センサー操作時、ポイマーカーは常に画面中央に固定表示される（issue #72）', async () => {
-    mockPondSize(200, 100)
-    render(<Poi />)
-    const marker = screen.getByTestId('poi-marker')
-
-    fireEvent(
-      window,
-      new DeviceMotionEvent('devicemotion', { acceleration: { x: 10, y: 10, z: 0 } }),
-    )
-    // devicemotionの反映（rAFループ経由）を待った上で、位置オフセットが
-    // 一切現れないことを確認する
-    await new Promise((resolve) => setTimeout(resolve, 50))
-
-    expect(marker.style.transform).not.toMatch(/translate\(-?\d+px/)
+    expect(marker.style.transform).toContain('translate(0px, 0px)')
+    expect(marker.style.transform).toContain('rotate(30deg)')
   })
 
   it('DeviceMotionEvent自体が存在しない場合、フォールバック操作の案内を表示する', () => {
@@ -310,18 +291,18 @@ describe('Poi', () => {
     vi.restoreAllMocks()
   })
 
-  it('センサー操作時、掬うジェスチャーの捕獲位置はワールドパンオフセットを反映する（issue #72）', async () => {
+  it('センサー操作時、掬うジェスチャーの捕獲位置はポイの位置を反映する', async () => {
     mockPointerBounds()
     mockPondSize(200, 100)
     const onScoop = vi.fn()
-    const worldOffsetRef = { current: { xPercent: 50, yPercent: 50 } }
 
-    render(<Poi onScoop={onScoop} worldOffsetRef={worldOffsetRef} />)
+    render(<Poi onScoop={onScoop} />)
 
-    // スマホを右へ動かし、ワールドパンオフセットを右方向へ動かす
+    // スマホを右へ動かし、ポイを右方向へ移動させる
+    const marker = screen.getByTestId('poi-marker')
     fireEvent(window, new DeviceMotionEvent('devicemotion', { acceleration: { x: 10, y: 0, z: 0 } }))
     await waitFor(() => {
-      expect(worldOffsetRef.current.xPercent).toBeGreaterThan(50)
+      expect(marker.style.transform).not.toContain('translate(0px, 0px)')
     })
 
     // 掬うジェスチャーをトリガーする
@@ -332,8 +313,8 @@ describe('Poi', () => {
       expect(onScoop).toHaveBeenCalledTimes(1)
     })
 
-    // pond（left:0, width:200px）の中心をvwへ換算した値。ワールドパンオフセットが
-    // 右へ動いた分、捕獲位置のxVwもこれより右側へずれるはず
+    // pond（left:0, width:200px）の中心をvwへ換算した値。ポイが右へ動いた分、
+    // 捕獲位置のxVwもこれより右側へずれるはず
     const pondCenterXVw = (100 / window.innerWidth) * 100
     expect(onScoop.mock.calls[0][0].xVw).toBeGreaterThan(pondCenterXVw)
   })
@@ -408,22 +389,20 @@ describe('Poi', () => {
     expect(onScoop).not.toHaveBeenCalled()
   })
 
-  it('ポイが破れている場合、devicemotionによるワールドパンオフセット更新を受け付けない（issue #79, #72）', async () => {
+  it('ポイが破れている場合、devicemotionによる位置更新を受け付けない（issue #79）', async () => {
     mockPondSize(200, 100)
-    const worldOffsetRef = { current: { xPercent: 50, yPercent: 50 } }
-    render(<Poi isTorn worldOffsetRef={worldOffsetRef} />)
+    render(<Poi isTorn />)
 
     fireEvent(
       window,
       new DeviceMotionEvent('devicemotion', { acceleration: { x: 1, y: 0, z: 0 } }),
     )
 
-    // 破れた表示（IMG）のまま、位置（中央固定）・ワールドパンオフセットとも変化しない
+    // 破れた表示（IMG）のまま、位置も変化しない
     const marker = screen.getByTestId('poi-marker')
     expect(marker.tagName).toBe('IMG')
     await new Promise((resolve) => setTimeout(resolve, 50))
-    expect(marker.style.transform).toBe('translate(-50%, -50%) rotate(0deg)')
-    expect(worldOffsetRef.current).toEqual({ xPercent: 50, yPercent: 50 })
+    expect(marker.style.transform).toBe('translate(-50%, -50%) translate(0px, 0px) rotate(0deg)')
   })
 
   it('ポイが破れている場合、deviceorientationによる角度更新を受け付けない（issue #79）', () => {
