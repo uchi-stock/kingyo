@@ -15,7 +15,7 @@ describe('useGoldfishSchool', () => {
       })
 
       // 捕獲された金魚はアニメーション中のためまだ配列に残り、そこへ1匹追加されるので+1
-      expect(result.current.goldfish.length).toBe(beforeCount + 1)
+      expect(result.current.goldfish).toHaveLength(beforeCount + 1)
     })
 
     it('ベストタイミング範囲外（中心から5離れた位置）で捕獲しても、金魚は追加されない', () => {
@@ -28,7 +28,7 @@ describe('useGoldfishSchool', () => {
         result.current.catchNearestGoldfish({ xVw: targetX, yVh: targetY })
       })
 
-      expect(result.current.goldfish.length).toBe(beforeCount)
+      expect(result.current.goldfish).toHaveLength(beforeCount)
     })
   })
 })
