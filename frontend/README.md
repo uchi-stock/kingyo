@@ -5,7 +5,7 @@
 ```sh
 npm install
 npm run dev    # 開発サーバー
-npm run lint   # oxlint
+npm run lint   # ESLint
 npm test       # vitest
 npm run build  # 型検査 + ビルド
 ```

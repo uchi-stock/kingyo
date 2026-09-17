@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { ValidationError } from '../lib/errors.js'
 
 // 保持する記録の上限件数。frontend/src/ranking/ranking.tsの既存ロジック（issue #89, #99）
@@ -33,7 +34,7 @@ export function createRankingService(repository) {
       assertNonNegativeNumber(catchCount, 'catchCount')
 
       const entry = {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         timeMs,
         catchCount,
         recordedAt: new Date().toISOString(),

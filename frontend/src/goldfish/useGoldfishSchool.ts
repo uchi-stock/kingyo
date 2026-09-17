@@ -36,6 +36,8 @@ function createEntities(count: number): GoldfishEntity[] {
 // ベストタイミングでの捕獲ボーナス（issue #153）で1匹追加する際に使う。初期配置の
 // createEntitiesと異なり、他の匹と被らない配置である必要はないためランダムなseedでよい
 function createBonusEntity(id: number): GoldfishEntity {
+  // 金魚の見た目上の初期位置・遊泳位相を決めるだけの非セキュリティ用途（issue #163）。暗号論的な安全性は不要
+  // eslint-disable-next-line sonarjs/pseudo-random
   const seed = Math.random()
   return { id, seed, state: createInitialGoldfishState(seed), caughtAt: null }
 }

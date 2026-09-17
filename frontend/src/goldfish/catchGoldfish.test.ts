@@ -36,22 +36,14 @@ describe('findCatchableGoldfish', () => {
   })
 
   describe('isBestTiming（issue #153）', () => {
-    it('ポイの中心付近（3以内）での捕獲はベストタイミングとなる', () => {
-      const goldfish = [{ id: 1, xPercent: 52, yPercent: 50 }] // ポイから2離れている
+    it.each([
+      { distance: 2, xPercent: 52, expected: true, label: 'ポイの中心付近（3以内）' },
+      { distance: 3, xPercent: 53, expected: true, label: '判定の境界（ちょうど3）' },
+      { distance: 5, xPercent: 55, expected: false, label: '捕獲半径内だが範囲外（3より大きい）' },
+    ])('$label（距離$distance）はisBestTiming: $expectedとなる', ({ xPercent, expected }) => {
+      const goldfish = [{ id: 1, xPercent, yPercent: 50 }]
       const result = findCatchableGoldfish({ xVw: 50, yVh: 50 }, goldfish)
-      expect(result?.isBestTiming).toBe(true)
-    })
-
-    it('ベストタイミング判定の境界（ちょうど3）もベストタイミングに含む', () => {
-      const goldfish = [{ id: 1, xPercent: 53, yPercent: 50 }] // ポイから3離れている
-      const result = findCatchableGoldfish({ xVw: 50, yVh: 50 }, goldfish)
-      expect(result?.isBestTiming).toBe(true)
-    })
-
-    it('捕獲半径内でもベストタイミング範囲外（3より大きい）はfalseになる', () => {
-      const goldfish = [{ id: 1, xPercent: 55, yPercent: 50 }] // ポイから5離れている
-      const result = findCatchableGoldfish({ xVw: 50, yVh: 50 }, goldfish)
-      expect(result?.isBestTiming).toBe(false)
+      expect(result?.isBestTiming).toBe(expected)
     })
   })
 })
