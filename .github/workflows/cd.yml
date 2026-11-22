@@ -6,7 +6,7 @@ on:
 
 jobs:
   cd:
-    uses: bamiyanapp/dev-standards/.github/workflows/reusable-cd.yml@v2.4.0
+    uses: bamiyanapp/dev-standards/.github/workflows/reusable-cd.yml@v2.180.1
     with:
       semantic_release_node_version: "22"
       enable_shared_release_config: true
@@ -45,7 +45,7 @@ jobs:
           submodules: true
 
       - name: Deploy infrastructure (S3 + CloudFront)
-        uses: bamiyanapp/dev-standards/.github/actions/deploy-serverless@v2.4.0
+        uses: bamiyanapp/dev-standards/.github/actions/deploy-serverless@v2.180.1
         with:
           working-directory: infra
           node-version: "22"
@@ -57,7 +57,7 @@ jobs:
       # backendはnpm workspacesの一部（issue #111）のため、依存インストールはリポジトリ
       # ルートで行う
       - name: Deploy ranking API backend
-        uses: bamiyanapp/dev-standards/.github/actions/deploy-serverless@v2.4.0
+        uses: bamiyanapp/dev-standards/.github/actions/deploy-serverless@v2.180.1
         with:
           working-directory: backend
           node-version: "22"

@@ -7,8 +7,9 @@ on:
 
 jobs:
   ci:
-    uses: bamiyanapp/dev-standards/.github/workflows/reusable-ci.yml@v2.4.0
+    uses: bamiyanapp/dev-standards/.github/workflows/reusable-ci.yml@v2.180.1
     with:
+      self_ref: v2.180.1
       workspaces: true
       node_version: 22
       skip_verification_on_push: true
